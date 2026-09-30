@@ -29,7 +29,30 @@ const DeliveryEvent = z
   })
   .passthrough();
 
-export const ZokoEvent = z.discriminatedUnion("event", [MessageEvent, DeliveryEvent]);
+// Undocumented chat events. Shapes observed on 30 Sep 2026.
+const Agent = z.object({ id: z.string(), name: z.string().nullish(), email: z.string().nullish() }).passthrough();
+const ChatAssignedEvent = z
+  .object({ event: z.literal("zoko:chat:assigned"), customerId: z.string().uuid(), eventAt: z.string(), agent: Agent.nullish() })
+  .passthrough();
+const ChatClosedEvent = z
+  .object({
+    event: z.literal("zoko:chat:closed"),
+    customerId: z.string().uuid(),
+    eventAt: z.string(),
+    agent: Agent.nullish(),
+    closedBy: z.object({ type: z.string(), agent: Agent.nullish() }).passthrough().nullish(),
+  })
+  .passthrough();
+
+export const PARSED_EVENTS = [
+  "message:user:in",
+  "message:store:out",
+  "message:delivery:update",
+  "zoko:chat:assigned",
+  "zoko:chat:closed",
+] as const;
+
+export const ZokoEvent = z.discriminatedUnion("event", [MessageEvent, DeliveryEvent, ChatAssignedEvent, ChatClosedEvent]);
 export type ZokoEvent = z.infer<typeof ZokoEvent>;
 
 /**

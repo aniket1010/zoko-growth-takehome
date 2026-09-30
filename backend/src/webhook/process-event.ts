@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull, lte, sql as dsql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { assignmentSnapshots, customers, messages, rawEvents } from "../db/schema.js";
-import { ZokoEvent } from "./zoko-payload.js";
+import { assignmentSnapshots, chatEvents, customers, messages, rawEvents } from "../db/schema.js";
+import { PARSED_EVENTS, ZokoEvent } from "./zoko-payload.js";
 
 /** Parse one stored raw event into the domain tables. Safe to run twice. */
 export async function processRawEvent(rawId: number): Promise<void> {
@@ -11,12 +11,33 @@ export async function processRawEvent(rawId: number): Promise<void> {
   // Events we do not parse yet (e.g. zoko:chat:closed, zoko:chat:assigned) stay in
   // raw_events untouched, ready to be parsed once we have seen their real shape.
   const eventName = (row.payload as { event?: string })?.event ?? "";
-  if (!["message:user:in", "message:store:out", "message:delivery:update"].includes(eventName)) return;
+  if (!(PARSED_EVENTS as readonly string[]).includes(eventName)) return;
 
   try {
     const evt = ZokoEvent.parse(row.payload);
 
-    if (evt.event === "message:delivery:update") {
+    if (evt.event === "zoko:chat:assigned" || evt.event === "zoko:chat:closed") {
+      const at = new Date(evt.eventAt);
+      const agentId = evt.agent?.id ?? null;
+      // The customer may be new to us (e.g. created since the last poll).
+      await db.insert(customers).values({ id: evt.customerId, firstSeenAt: at, lastSeenAt: at }).onConflictDoNothing();
+      await db
+        .insert(chatEvents)
+        .values({
+          rawEventId: rawId,
+          customerId: evt.customerId,
+          kind: evt.event === "zoko:chat:assigned" ? "assigned" : "closed",
+          agentId,
+          closedByType: evt.event === "zoko:chat:closed" ? (evt.closedBy?.type ?? null) : null,
+          eventAt: at,
+        })
+        .onConflictDoNothing();
+      // An assignment event is exact, so it also becomes an assignment snapshot
+      // (more precise than the 5-minute poll).
+      if (evt.event === "zoko:chat:assigned") {
+        await db.insert(assignmentSnapshots).values({ customerId: evt.customerId, assigneeId: agentId, assigneeType: agentId ? "agent" : null, observedAt: at });
+      }
+    } else if (evt.event === "message:delivery:update") {
       const updated = await applyDeliveryStatus(evt.id, evt.deliveryStatus);
       if (!updated) {
         // The message itself has not been stored yet (events can arrive or finish

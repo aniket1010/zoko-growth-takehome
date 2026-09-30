@@ -1,5 +1,5 @@
 import {
-  pgTable, pgEnum, text, timestamp, jsonb, uuid, bigserial, index, uniqueIndex,
+  pgTable, pgEnum, text, timestamp, jsonb, uuid, bigserial, bigint, index, uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // Zoko documents exactly three webhook events. See docs/zoko-integration.md.
@@ -79,4 +79,26 @@ export const assignmentSnapshots = pgTable(
     observedAt: timestamp("observed_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("assign_customer_observed_idx").on(t.customerId, t.observedAt)],
+);
+
+/**
+ * Chat lifecycle from the undocumented webhook events.
+ * zoko:chat:assigned -> kind "assigned", agent = new owner.
+ * zoko:chat:closed   -> kind "closed", agent = owner at close, closedByType = agent | system | ...
+ */
+export const chatEvents = pgTable(
+  "chat_events",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    rawEventId: bigint("raw_event_id", { mode: "number" }).notNull(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id),
+    kind: text("kind").notNull(),
+    agentId: text("agent_id"),
+    closedByType: text("closed_by_type"),
+    eventAt: timestamp("event_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("chat_events_raw_event_uq").on(t.rawEventId),
+    index("chat_events_customer_at_idx").on(t.customerId, t.eventAt),
+  ],
 );
