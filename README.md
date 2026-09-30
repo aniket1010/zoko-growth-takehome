@@ -1,0 +1,56 @@
+# Zoko Growth Engineer take-home
+
+One monorepo for all three tasks.
+
+| Folder | What |
+|---|---|
+| `backend/` | Express 5 + TypeScript + Drizzle on Postgres. Webhook ingestion, metrics API, guarded send. Deploys to Render. |
+| `frontend/` | Next.js + shadcn/ui dashboard. Deploys to Vercel. |
+| `docs/` | Zoko integration notes and the decision log. |
+| `posthog/` | Task 2 analytics plan and insight links. |
+| `teardown/` | Task 3 product teardown. |
+
+## How data flows
+
+```
+WhatsApp customer ─▶ Zoko ─▶ POST /webhooks/zoko ─▶ raw_events (append-only)
+                                                   └▶ customers, messages
+Zoko REST (poll)  ─▶ /customer?includeAssign=true ─▶ assignment_snapshots
+Dashboard (Vercel) ─▶ /api/* (Render) ─▶ Postgres (Neon)
+Send message ─▶ allowlist check ─▶ POST https://chat.zoko.io/v2/message
+```
+
+## Run locally
+
+Needs Node 22+ and a Postgres URL (a free Neon database works).
+
+```bash
+# backend
+cd backend
+cp .env.example .env        # fill DATABASE_URL, ZOKO_API_KEY, SEND_ALLOWLIST
+npm install
+npm run db:migrate
+npm run dev                 # http://localhost:4000/health
+
+# frontend, in a second terminal
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev                 # http://localhost:3000
+```
+
+To receive webhooks locally, deploy the backend to Render first and point both at the same database.
+
+## Deploy
+
+- **Backend:** Render, New Blueprint, pick this repo. `render.yaml` sets root `backend/`. Fill the secret env vars.
+- **Frontend:** Vercel, import repo, root directory `frontend/`, set `NEXT_PUBLIC_API_URL` to the Render URL.
+- **Webhook:** register `https://<render-host>/webhooks/zoko?token=<ZOKO_WEBHOOK_TOKEN>` in Zoko for all three events.
+
+## Guardrail
+
+The backend refuses to send to any number not in `SEND_ALLOWLIST`. The check sits directly before the Zoko API call in `backend/src/messages/guardrail.ts`.
+
+## Key decisions
+
+See [docs/decisions.md](docs/decisions.md). Zoko API constraints that shaped them are in [docs/zoko-integration.md](docs/zoko-integration.md).

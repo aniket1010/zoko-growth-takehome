@@ -1,0 +1,27 @@
+# Render Blueprint for the backend only. Frontend deploys to Vercel.
+# Use a PERSONAL Render account, not the company workspace.
+services:
+  - type: web
+    name: zoko-support-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    # Free plan has no pre-deploy hook, so migrations run on boot. They are idempotent.
+    startCommand: npx drizzle-kit migrate && node dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: ZOKO_API_KEY
+        sync: false
+      - key: ZOKO_WEBHOOK_TOKEN
+        generateValue: true
+      - key: SEND_ALLOWLIST
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: POSTHOG_API_KEY
+        sync: false
