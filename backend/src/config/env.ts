@@ -15,6 +15,11 @@ const EnvSchema = z.object({
   // Digits only, e.g. 919876543210. Anything not in here can never be messaged.
   SEND_ALLOWLIST: csv.transform((xs) => xs.map((x) => x.replace(/\D/g, ""))),
   CORS_ORIGINS: csv,
+  // Only ONE running instance should poll Zoko: the customer list allows 1 request per 300 s.
+  POLL_ZOKO: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
   POSTHOG_API_KEY: z.string().default(""),
   POSTHOG_HOST: z.string().url().default("https://us.i.posthog.com"),
 });

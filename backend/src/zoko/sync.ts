@@ -1,4 +1,4 @@
-import { desc, eq, sql as dsql } from "drizzle-orm";
+import { desc, sql as dsql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { agents, assignmentSnapshots, customers } from "../db/schema.js";
 import { zokoApi, type ZokoAgent } from "./client.js";
@@ -28,37 +28,55 @@ export async function syncAgents(): Promise<number> {
  */
 export async function syncAssignments(): Promise<{ customers: number; changes: number }> {
   const res = await zokoApi.listAllCustomers();
-  let changes = 0;
-  for (const c of res.customers ?? []) {
+  const list = res.customers ?? [];
+
+  // 1. Upsert all customers in a few bulk statements, not one query per row.
+  for (let i = 0; i < list.length; i += 500) {
     await db
       .insert(customers)
-      .values({ id: c.id, name: c.name ?? null, phone: c.channelId ?? null })
+      .values(list.slice(i, i + 500).map((c) => ({ id: c.id, name: c.name ?? null, phone: c.channelId ?? null })))
       .onConflictDoUpdate({
         target: customers.id,
         set: { name: dsql`coalesce(excluded.name, ${customers.name})`, phone: dsql`coalesce(${customers.phone}, excluded.phone)` },
       });
-
-    const assigneeId = c.assignment?.id ?? null;
-    const [last] = await db
-      .select({ assigneeId: assignmentSnapshots.assigneeId })
-      .from(assignmentSnapshots)
-      .where(eq(assignmentSnapshots.customerId, c.id))
-      .orderBy(desc(assignmentSnapshots.observedAt))
-      .limit(1);
-    if (!last || last.assigneeId !== assigneeId) {
-      await db.insert(assignmentSnapshots).values({ customerId: c.id, assigneeId, assigneeType: assigneeId ? (c.assignment?.team ? "team" : "agent") : null });
-      changes++;
-    }
   }
-  return { customers: res.customers?.length ?? 0, changes };
+
+  // 2. Latest known assignee per customer, in one query.
+  const latest = await db
+    .selectDistinctOn([assignmentSnapshots.customerId], {
+      customerId: assignmentSnapshots.customerId,
+      assigneeId: assignmentSnapshots.assigneeId,
+    })
+    .from(assignmentSnapshots)
+    .orderBy(assignmentSnapshots.customerId, desc(assignmentSnapshots.observedAt));
+  const last = new Map(latest.map((r) => [r.customerId, r.assigneeId]));
+
+  // 3. Insert a snapshot only where the assignee changed (or we have never seen the customer).
+  const changed = list
+    .map((c) => ({ c, assigneeId: c.assignment?.id ?? null }))
+    .filter(({ c, assigneeId }) => !last.has(c.id) || last.get(c.id) !== assigneeId)
+    .map(({ c, assigneeId }) => ({
+      customerId: c.id,
+      assigneeId,
+      assigneeType: assigneeId ? (c.assignment?.team ? "team" : "agent") : null,
+    }));
+  for (let i = 0; i < changed.length; i += 500) {
+    await db.insert(assignmentSnapshots).values(changed.slice(i, i + 500));
+  }
+  return { customers: list.length, changes: changed.length };
 }
 
 /** In-process poller. Stays just above Zoko's 300 s limit. Only runs while the service is awake. */
 export function startAssignmentPoller(intervalMs = 310_000) {
-  const tick = () =>
+  let running = false; // never let a slow poll overlap the next one
+  const tick = () => {
+    if (running) return;
+    running = true;
     syncAssignments()
       .then((r) => console.log(`assignment poll: ${r.customers} customers, ${r.changes} changes`))
-      .catch((err) => console.error("assignment sync failed", err));
-  void tick();
+      .catch((err) => console.error("assignment sync failed", err))
+      .finally(() => (running = false));
+  };
+  tick();
   return setInterval(tick, intervalMs);
 }

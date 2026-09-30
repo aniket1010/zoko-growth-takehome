@@ -10,7 +10,8 @@ app.listen(env.PORT, () => {
     syncAgents()
       .then((n) => console.log(`synced ${n} agents`))
       .catch((err) => console.error("agent sync failed", err));
-    startAssignmentPoller();
+    if (env.POLL_ZOKO) startAssignmentPoller();
+    else console.log("POLL_ZOKO=false: assignment poller disabled on this instance");
   }
   else console.warn("ZOKO_API_KEY not set: assignment poller disabled");
 });
