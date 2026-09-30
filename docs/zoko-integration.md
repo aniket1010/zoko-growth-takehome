@@ -49,3 +49,18 @@ We register `https://<render-host>/webhooks/zoko?token=<ZOKO_WEBHOOK_TOKEN>` for
 - `GET /customer` with `pageSize=2000` returned all 1,343 customers in one response. 12 are assigned, none to a team. Assignment shape is `{ id, name, team, email? }`. 1,247 customers have never sent a message; 85 messaged in 2026.
 - Sorting by `lastIncomingMessageAt desc` puts customers with no messages first, so it is not useful for polling.
 - The store is shared with Zoko staff and other candidates, so the webhook will carry their activity too.
+
+## Undocumented webhook events (found 30 Sep 2026)
+
+The docs list three events, but webhooks already registered on the test store (`GET /webhook`) subscribe to many more. Relevant to us:
+
+| Event | Use |
+|---|---|
+| `zoko:chat:closed` | Chat closed: resolution time and the "closed" funnel step |
+| `zoko:chat:assigned` | Assignment changes: reassignments without polling |
+| `message:zoko:private` | Probably internal agent notes |
+
+Others seen: `customer:tag:added`, `customer:tag:removed`, `customer:optout:clicked`, `customer:ctwa:clicked`, `call:*`, `group:update`, `message:template:*`.
+Payload shapes are unknown until we receive them.
+
+The store also has a CSAT template, `zoko_csat_test_v0` (button template): "Your support conversation has been closed. How would you rate the help you received?" with five buttons.
