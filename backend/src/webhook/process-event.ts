@@ -2,6 +2,7 @@ import { and, desc, eq, isNull, lte, sql as dsql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { agents, assignmentSnapshots, chatEvents, customers, messages, rawEvents } from "../db/schema.js";
 import { PARSED_EVENTS, ZokoEvent } from "./zoko-payload.js";
+import { syncAgents } from "../zoko/sync.js";
 
 /** Parse one stored raw event into the domain tables. Safe to run twice. */
 export async function processRawEvent(rawId: number): Promise<void> {
@@ -19,6 +20,15 @@ export async function processRawEvent(rawId: number): Promise<void> {
     if (evt.event === "zoko:chat:assigned" || evt.event === "zoko:chat:closed") {
       const at = new Date(evt.eventAt);
       const agentId = evt.agent?.id ?? null;
+      // Chat events carry the agent's id, name and email, so a newly invited agent
+      // is known as soon as a chat is assigned to them.
+      if (evt.agent?.id) {
+        const [first, ...rest] = (evt.agent.name ?? "").trim().split(/\s+/);
+        await db
+          .insert(agents)
+          .values({ id: evt.agent.id, firstName: first || null, lastName: rest.join(" ") || null, email: evt.agent.email ?? null })
+          .onConflictDoNothing();
+      }
       // The customer may be new to us (e.g. created since the last poll).
       await db.insert(customers).values({ id: evt.customerId, firstSeenAt: at, lastSeenAt: at }).onConflictDoNothing();
       await db
@@ -76,10 +86,7 @@ export async function processRawEvent(rawId: number): Promise<void> {
       const sentViaApi = evt.appType === "direct_api";
       const senderType =
         evt.direction === "FROM_CUSTOMER" ? "customer" : agentEmail || sentViaApi ? "agent" : "bot";
-      if (agentEmail) {
-        const [a] = await db.select({ id: agents.id }).from(agents).where(dsql`lower(${agents.email}) = lower(${agentEmail})`);
-        agentId = a?.id ?? null;
-      }
+      if (agentEmail) agentId = await agentIdByEmail(agentEmail);
       if (senderType === "agent" && !agentId) {
         const [snap] = await db
           .select({ assigneeId: assignmentSnapshots.assigneeId })
@@ -156,4 +163,19 @@ async function applyDeliveryStatus(messageId: string, status: string): Promise<b
     .set({ deliveryStatus: status })
     .where(and(eq(messages.id, messageId), dsql`${STATUS_RANK} <= ${newRank}`));
   return true;
+}
+
+/**
+ * Look up an agent by email. If unknown (e.g. invited after the server started),
+ * re-sync the agent list from Zoko, at most once a minute, and try again.
+ */
+let lastAgentSync = 0;
+async function agentIdByEmail(email: string): Promise<string | null> {
+  const find = async () =>
+    (await db.select({ id: agents.id }).from(agents).where(dsql`lower(${agents.email}) = lower(${email})`))[0]?.id ?? null;
+  const found = await find();
+  if (found || Date.now() - lastAgentSync < 60_000) return found;
+  lastAgentSync = Date.now();
+  await syncAgents().catch((err) => console.error("agent re-sync failed", err));
+  return find();
 }
