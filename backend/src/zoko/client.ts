@@ -26,8 +26,9 @@ export type ZokoCustomerPage = { currentPage: number; totalPages: number; totalC
 export type ZokoAgent = { id: string; firstName?: string; lastName?: string; email?: string; role?: string; active?: boolean };
 
 export const zokoApi = {
+  // `channel` is required. Zoko rate-limits this endpoint to 1 request per 300 seconds.
   listCustomers: (page = 1, pageSize = 100) =>
-    zoko<ZokoCustomerPage>(`/customer?page=${page}&pageSize=${pageSize}&includeAssign=true`),
+    zoko<ZokoCustomerPage>(`/customer?channel=whatsapp&page=${page}&pageSize=${pageSize}&includeAssign=true`),
   listAgents: () => zoko<ZokoAgent[] | { agents: ZokoAgent[] }>(`/agent/agents`),
   listTemplates: () => zoko<unknown>(`/account/templates`),
   getMessage: (id: string) => zoko<unknown>(`/message/${id}`),

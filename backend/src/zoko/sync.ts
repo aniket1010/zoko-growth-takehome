@@ -21,46 +21,47 @@ export async function syncAgents(): Promise<number> {
 /**
  * Zoko has no assignment webhook, so we poll customers with their current
  * assignee and write a snapshot row only when it changed since the last poll.
- * Limitation to state in the README: two reassignments between polls look like one.
+ *
+ * GET /customer is rate-limited to 1 request per 300 seconds, so each call
+ * fetches ONE page and remembers where it got to. With N pages, a full pass
+ * takes N x 5 minutes. Limitation to state in the README: changes faster than
+ * a full pass are merged or missed.
  */
-export async function syncAssignments(): Promise<{ customers: number; changes: number }> {
-  let page = 1;
-  let seen = 0;
-  let changes = 0;
-  for (;;) {
-    const res = await zokoApi.listCustomers(page);
-    for (const c of res.customers ?? []) {
-      seen++;
-      await db
-        .insert(customers)
-        .values({ id: c.id, name: c.name ?? null, phone: c.channelId ?? null })
-        .onConflictDoUpdate({
-          target: customers.id,
-          set: { name: dsql`coalesce(excluded.name, ${customers.name})`, phone: dsql`coalesce(${customers.phone}, excluded.phone)` },
-        });
+let nextPage = 1;
 
-      const assigneeId = c.assignment?.id ?? null;
-      const [last] = await db
-        .select({ assigneeId: assignmentSnapshots.assigneeId })
-        .from(assignmentSnapshots)
-        .where(eq(assignmentSnapshots.customerId, c.id))
-        .orderBy(desc(assignmentSnapshots.observedAt))
-        .limit(1);
-      if (!last || last.assigneeId !== assigneeId) {
-        await db.insert(assignmentSnapshots).values({ customerId: c.id, assigneeId, assigneeType: c.assignment?.type ?? null });
-        changes++;
-      }
+export async function syncAssignments(): Promise<{ page: number; totalPages: number; customers: number; changes: number }> {
+  const page = nextPage;
+  const res = await zokoApi.listCustomers(page);
+  let changes = 0;
+  for (const c of res.customers ?? []) {
+    await db
+      .insert(customers)
+      .values({ id: c.id, name: c.name ?? null, phone: c.channelId ?? null })
+      .onConflictDoUpdate({
+        target: customers.id,
+        set: { name: dsql`coalesce(excluded.name, ${customers.name})`, phone: dsql`coalesce(${customers.phone}, excluded.phone)` },
+      });
+
+    const assigneeId = c.assignment?.id ?? null;
+    const [last] = await db
+      .select({ assigneeId: assignmentSnapshots.assigneeId })
+      .from(assignmentSnapshots)
+      .where(eq(assignmentSnapshots.customerId, c.id))
+      .orderBy(desc(assignmentSnapshots.observedAt))
+      .limit(1);
+    if (!last || last.assigneeId !== assigneeId) {
+      await db.insert(assignmentSnapshots).values({ customerId: c.id, assigneeId, assigneeType: c.assignment?.type ?? null });
+      changes++;
     }
-    if (page >= (res.totalPages ?? 1)) break;
-    page++;
   }
-  return { customers: seen, changes };
+  const totalPages = res.totalPages ?? 1;
+  nextPage = page >= totalPages ? 1 : page + 1;
+  return { page, totalPages, customers: res.customers?.length ?? 0, changes };
 }
 
-/** In-process poller. On Render free tier this only runs while the service is awake. */
-export function startAssignmentPoller(intervalMs = 60_000) {
-  const tick = () =>
-    syncAssignments().catch((err) => console.error("assignment sync failed", err));
+/** In-process poller. Stays just above Zoko's 300 s limit. Only runs while the service is awake. */
+export function startAssignmentPoller(intervalMs = 310_000) {
+  const tick = () => syncAssignments().catch((err) => console.error("assignment sync failed", err));
   void tick();
   return setInterval(tick, intervalMs);
 }
