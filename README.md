@@ -28,7 +28,14 @@ The question it answers: *what is happening with my support team, and how do I i
 | Per agent: FRT, resolution time, reassigned chats | Dashboard agent table |
 | Conversation view: name, phone, assigned agent, messages, send | Conversations, then View messages |
 
-The dashboard shows only what the brief asks for. Two rules apply behind the numbers:
+Added on top, for a support lead deciding what to do next:
+
+- **Needs attention:** up to three customers waiting for a first human reply, longest wait first, each linking to their thread.
+- **Observations with evidence:** unusually slow first responses (over 3× the median, at least 15 minutes) and conversations closed without a human reply. Each links to the exact message in the thread.
+- **Conversation search and filters:** All, Waiting, Open and Closed, with the latest message and its time.
+- **Readable threads:** agent names, date separators, formatted templates and delivery ticks.
+
+Two rules apply behind the numbers:
 
 - **The store's AI assistant is excluded** from response times, since it replies within seconds. Its messages still count in total messages and are labelled in the thread.
 - **Conversations closed with no human reply** have no resolution time, so they do not distort it.
