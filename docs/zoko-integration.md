@@ -64,3 +64,12 @@ Others seen: `customer:tag:added`, `customer:tag:removed`, `customer:optout:clic
 Payload shapes are unknown until we receive them.
 
 The store also has a CSAT template, `zoko_csat_test_v0` (button template): "Your support conversation has been closed. How would you rate the help you received?" with five buttons.
+
+## Real payloads (first received 30 Sep 2026)
+
+- Zoko's webhook client (`unirest-java`) did not deliver our base64 query token intact; it arrived empty and every event got a 401. The registered URL now carries a hex path key instead. Deliveries include an `x-zoko-retry-count` header.
+- Message events carry extra fields: `bsuid`, `phone` (null), `chatType` ("individual"), `username`, `senderName`.
+- `message:store:out` has **no agent field**. `senderName` is the customer's name, not the agent's.
+- Delivery statuses seen: `accepted`, `delivered`, `seen` (WhatsApp's "read").
+- Delivery updates have an empty `customer.id`.
+- The store runs an AI auto-reply that answers within seconds. It arrives as a normal `message:store:out`, so first response time must not count it blindly.

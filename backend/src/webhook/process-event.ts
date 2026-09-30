@@ -89,15 +89,15 @@ export async function processRawEvent(rawId: number): Promise<void> {
 }
 
 /**
- * Status only moves forward: a late "delivered" must not overwrite "read".
+ * Status only moves forward: a late "delivered" must not overwrite "seen" (Zoko's word for read).
  * "failed" always wins. Returns false if the message row does not exist yet.
  */
 const STATUS_RANK = dsql`case lower(coalesce(${messages.deliveryStatus}, ''))
-  when 'failed' then 99 when 'read' then 4 when 'delivered' then 3
+  when 'failed' then 99 when 'read' then 4 when 'seen' then 4 when 'delivered' then 3
   when 'sent' then 2 when 'accepted' then 1 else 0 end`;
 
 async function applyDeliveryStatus(messageId: string, status: string): Promise<boolean> {
-  const rank: Record<string, number> = { failed: 99, read: 4, delivered: 3, sent: 2, accepted: 1 };
+  const rank: Record<string, number> = { failed: 99, read: 4, seen: 4, delivered: 3, sent: 2, accepted: 1 };
   const newRank = rank[status.toLowerCase()] ?? 0;
   const exists = await db.select({ id: messages.id }).from(messages).where(eq(messages.id, messageId));
   if (exists.length === 0) return false;
