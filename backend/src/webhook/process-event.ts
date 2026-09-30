@@ -70,7 +70,12 @@ export async function processRawEvent(rawId: number): Promise<void> {
       // agent replies we cannot match by email, use the assignee at send time.
       let agentId: string | null = null;
       const agentEmail = evt.agentEmail ?? null;
-      const senderType = evt.direction === "FROM_CUSTOMER" ? "customer" : agentEmail ? "agent" : "bot";
+      // appType seen on store messages: "webapp" (agent in Zoko's app, has agentEmail),
+      // "direct_api" (sent through the API, e.g. from this dashboard's send box: a human,
+      // credited to the chat's assignee) and "enigma"/none (the store's AI assistant).
+      const sentViaApi = evt.appType === "direct_api";
+      const senderType =
+        evt.direction === "FROM_CUSTOMER" ? "customer" : agentEmail || sentViaApi ? "agent" : "bot";
       if (agentEmail) {
         const [a] = await db.select({ id: agents.id }).from(agents).where(dsql`lower(${agents.email}) = lower(${agentEmail})`);
         agentId = a?.id ?? null;

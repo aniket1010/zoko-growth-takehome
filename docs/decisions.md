@@ -23,7 +23,7 @@ Free, persistent, serverless Postgres on a personal account. The app uses the po
 
 ## 007 Metric definitions
 - **Conversation:** everything between two `zoko:chat:closed` events for a customer, counted only if the customer sent a message in it. A message after a close starts a new conversation.
-- **First response time:** first customer message to the first human agent reply. Human replies carry `agentEmail`; the store's AI assistant does not, so bot replies are excluded. The CSAT survey is not a response.
+- **First response time:** first customer message to the first human agent reply. A store message is human if it carries `agentEmail` (sent from Zoko's app) or `appType: direct_api` (sent through the API, including this dashboard, credited to the chat's assignee). Everything else is the store's AI assistant and is excluded. The CSAT survey is not a response.
 - **Resolution time:** first customer message to the close event.
 - **Per agent:** FRT is credited to the agent who replied, resolution to the agent who owned the chat at close, and a reassignment to the agent the chat was taken from.
 - **Reassignment history** combines `zoko:chat:assigned` events with the 5-minute customer-list poll. On 30 Sep 2026 the poll caught a reassignment that produced no webhook event, so the poll stays as a backup.
