@@ -21,8 +21,11 @@ Each event is parsed after its 200 is sent, so a status update can be processed 
 ## 006 Neon for Postgres
 Free, persistent, serverless Postgres on a personal account. The app uses the pooled connection string; migrations use the direct one. The Neon project also has Neon Auth enabled, which this app does not use.
 
-## Open, to settle before building metrics
-- Conversation boundary: Zoko close event if one exists, otherwise an inactivity gap.
-- First response: does a bot or template reply count?
-- Resolution: what ends a conversation, and does a reopen start a new one?
-- Reassignment: does unassigned to agent count?
+## 007 Metric definitions
+- **Conversation:** everything between two `zoko:chat:closed` events for a customer, counted only if the customer sent a message in it. A message after a close starts a new conversation.
+- **First response time:** first customer message to the first human agent reply. Human replies carry `agentEmail`; the store's AI assistant does not, so bot replies are excluded. The CSAT survey is not a response.
+- **Resolution time:** first customer message to the close event.
+- **Per agent:** FRT is credited to the agent who replied, resolution to the agent who owned the chat at close, and a reassignment to the agent the chat was taken from.
+- **CSAT:** asked = the `zoko_csat_test_v0` template was sent; received = a button reply whose `context.template_id` is that template; the rating is `context.postback`.
+- **Scope:** all store activity since the webhook went live, including other candidates' test chats.
+Gave up: conversations that began before the webhook went live start at the first message we saw, so their times are understated.
