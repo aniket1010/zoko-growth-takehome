@@ -19,6 +19,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full">
         <ThemeProvider>
+          <a href="#main-content" className="sr-only z-50 rounded-md bg-card p-3 text-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3">Skip to content</a>
           <div className="flex min-h-dvh flex-col md:flex-row">
             <Nav />
             <div className="flex min-w-0 flex-1 flex-col">{children}</div>

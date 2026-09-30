@@ -6,7 +6,7 @@ export function Avatar({ name, className }: { name: string | null | undefined; c
   return (
     <span
       className={cn(
-        "grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-[11px] font-semibold text-brand-ink ring-1 ring-brand-line",
+        "grid size-9 shrink-0 place-items-center rounded-full bg-muted text-xs font-medium text-muted-foreground ring-1 ring-border",
         className,
       )}
       aria-hidden

@@ -19,13 +19,13 @@ export function PanelHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-4 pt-3.5 pb-3", className)}>
-      <div className="min-w-0 space-y-0.5">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
+    <header className={cn("flex flex-wrap items-start justify-between gap-x-6 gap-y-3 p-5 sm:p-6", className)}>
+      <div className="min-w-0 space-y-1.5">
+        <h2 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
           {icon}
           {title}
         </h2>
-        {description ? <p className="text-[13px] text-muted-foreground">{description}</p> : null}
+        {description ? <p className="max-w-2xl text-[13px] leading-relaxed text-muted-foreground">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </header>
@@ -33,7 +33,7 @@ export function PanelHeader({
 }
 
 export function PanelBody({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("px-4 pb-4", className)} {...props} />;
+  return <div className={cn("px-5 pb-5 sm:px-6 sm:pb-6", className)} {...props} />;
 }
 
 /** Page title block: small caps eyebrow, title, one-line description, optional right-side actions. */
@@ -51,12 +51,12 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0 space-y-0.5">
-          {eyebrow ? <p className="label-caps">{eyebrow}</p> : null}
-          <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-          {description ? <p className="text-[13px] text-muted-foreground">{description}</p> : null}
+    <header className="space-y-5 pb-1">
+      <div className="flex flex-wrap items-center justify-between gap-5">
+        <div className="min-w-0">
+          {eyebrow ? <p className="mb-3 text-xs font-medium text-muted-foreground">{eyebrow}</p> : null}
+          <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.035em] sm:text-[32px]">{title}</h1>
+          {description ? <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
@@ -67,5 +67,5 @@ export function PageHeader({
 
 /** The page body wrapper: grey canvas, consistent gutters, capped width. */
 export function Page({ className, ...props }: React.ComponentProps<"main">) {
-  return <main className={cn("mx-auto w-full max-w-7xl space-y-4 px-4 py-5 md:px-6 md:py-6", className)} {...props} />;
+  return <main id="main-content" className={cn("mx-auto w-full max-w-[1440px] space-y-7 px-5 py-8 sm:px-8 md:py-10 xl:space-y-8 xl:px-12", className)} {...props} />;
 }

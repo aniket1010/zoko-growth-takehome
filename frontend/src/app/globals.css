@@ -86,17 +86,17 @@
 
 :root {
   color-scheme: light;
-  --radius: 0.375rem; /* 6px: Zoko buttons and inputs */
+  --radius: 0.5rem;
 
   /* Surfaces */
-  --background: #f5f5f5; /* app canvas, sampled from the Zoko web app */
+  --background: #fafaf9;
   --card: #ffffff; /* panels */
   --card-foreground: #222525;
   --popover: #ffffff;
   --popover-foreground: #222525;
-  --sidebar: #ededed;
+  --sidebar: #ffffff;
   --sidebar-foreground: #222525;
-  --sidebar-accent: #e0e0e0; /* active nav row, like Zoko's selected "Webhooks" */
+  --sidebar-accent: #f3f3f1;
   --sidebar-accent-foreground: #222525;
   --sidebar-primary: #ff6937;
   --sidebar-primary-foreground: #ffffff;
@@ -122,7 +122,7 @@
   --brand-ink: #bf441c; /* zoko.io --accent #cc4a1f, one step darker so orange text passes AA on the orange tint */
   --brand-soft: #fff1eb;
   --brand-line: #f7dfd7; /* zoko.io --secondary, Zoko's disabled "Create" */
-  --primary: #ff6937;
+  --primary: #bf441c;
   --primary-foreground: #ffffff;
 
   /* Status */
@@ -137,13 +137,13 @@
   /* Chat */
   --bubble-customer: #ffffff;
   --bubble-agent: #fff1eb;
-  --bubble-bot: #f1eefc;
-  --bot-ink: #5a45b8;
+  --bubble-bot: #f1f3f6;
+  --bot-ink: #52647b;
   --tick-seen: #2f80ed;
 
   /* Chart series: customer / bot / agent, in stacking order */
-  --series-customer: #068466;
-  --series-bot: #6e56cf;
+  --series-customer: #354b44;
+  --series-bot: #8995a5;
   --series-agent: #ff6937;
 
   --chart-1: #ff6937;
@@ -186,7 +186,7 @@
   --brand-ink: #ff8a60;
   --brand-soft: #34201a;
   --brand-line: #5a2f22;
-  --primary: #ff6937;
+  --primary: #bf441c;
   --primary-foreground: #ffffff;
 
   --good: #4cc38a;
@@ -199,12 +199,12 @@
 
   --bubble-customer: #232327;
   --bubble-agent: #34201a;
-  --bubble-bot: #241f3a;
-  --bot-ink: #b3a6f5;
+  --bubble-bot: #202832;
+  --bot-ink: #a7b8cd;
   --tick-seen: #5aa2ff;
 
-  --series-customer: #1a9c7c;
-  --series-bot: #8471e0;
+  --series-customer: #68a38e;
+  --series-bot: #899db6;
   --series-agent: #ec5f2e;
 
   --chart-1: #ec5f2e;
@@ -227,13 +227,32 @@
 }
 
 @layer utilities {
-  /* Uppercase micro label used for section headings and table headers, as in Zoko ("WEBHOOKS & API"). */
+  /* Quiet, sentence-case labels for table headings and metadata. */
   .label-caps {
-    font-size: 11px;
-    line-height: 16px;
+    font-size: 12px;
+    line-height: 18px;
     font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0;
     color: var(--muted-foreground);
+  }
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--brand-ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
