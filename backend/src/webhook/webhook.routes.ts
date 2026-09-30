@@ -9,8 +9,31 @@ import { processRawEvent } from "./process-event.js";
 export const webhookRouter = Router();
 
 // Zoko does not document request signing, so we put a secret in the URL we register.
-const requireToken: RequestHandler = (req, res, next) => {
+// Rejected requests are recorded (without secrets) so delivery problems can be debugged
+// from the database instead of the hosting logs.
+const requireToken: RequestHandler = async (req, res, next) => {
   if (env.ZOKO_WEBHOOK_TOKEN && req.query.token !== env.ZOKO_WEBHOOK_TOKEN) {
+    const token = typeof req.query.token === "string" ? req.query.token : "";
+    const headers = Object.fromEntries(
+      Object.entries(req.headers).filter(([k]) => !["authorization", "cookie"].includes(k)),
+    );
+    await db
+      .insert(rawEvents)
+      .values({
+        dedupeKey: `rejected:${Date.now()}:${Math.random()}`,
+        event: "debug:rejected",
+        payload: {
+          reason: token ? "token mismatch" : "token missing",
+          tokenLength: token.length,
+          expectedLength: env.ZOKO_WEBHOOK_TOKEN.length,
+          path: req.path,
+          queryKeys: Object.keys(req.query),
+          headers,
+          body: req.body ?? null,
+        },
+        processedAt: new Date(),
+      })
+      .catch(() => undefined);
     res.sendStatus(401);
     return;
   }
