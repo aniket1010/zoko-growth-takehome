@@ -66,7 +66,12 @@ export async function syncAssignments(): Promise<{ customers: number; changes: n
   return { customers: list.length, changes: changed.length };
 }
 
-/** In-process poller. Stays just above Zoko's 300 s limit. Only runs while the service is awake. */
+/**
+ * In-process poller. Zoko allows one customer-list request per 300 s per API key.
+ * The first poll waits a full interval: on every deploy Render briefly runs the old and
+ * new instance side by side, and polling at boot would collide with the old one's poll.
+ * A 429 is expected occasionally (deploy overlap, a manual call) and just waits for the next tick.
+ */
 export function startAssignmentPoller(intervalMs = 310_000) {
   let running = false; // never let a slow poll overlap the next one
   const tick = () => {
@@ -74,9 +79,12 @@ export function startAssignmentPoller(intervalMs = 310_000) {
     running = true;
     syncAssignments()
       .then((r) => console.log(`assignment poll: ${r.customers} customers, ${r.changes} changes`))
-      .catch((err) => console.error("assignment sync failed", err))
+      .catch((err) => {
+        if (String(err).includes("-> 429")) console.warn(`assignment poll rate-limited by Zoko, retrying in ${intervalMs / 1000}s`);
+        else console.error("assignment sync failed", err);
+      })
       .finally(() => (running = false));
   };
-  tick();
+  console.log(`assignment poller: first poll in ${intervalMs / 1000}s`);
   return setInterval(tick, intervalMs);
 }
