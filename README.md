@@ -21,20 +21,17 @@ The question it answers: *what is happening with my support team, and how do I i
 
 | Brief asks for | Where |
 |---|---|
-| Total messages | Dashboard, split into customer, agent and AI assistant |
+| Total messages | Dashboard |
 | Messages per customer | Dashboard table |
 | Average and median first response time | Dashboard |
 | Average and median resolution time | Dashboard |
 | Per agent: FRT, resolution time, reassigned chats | Dashboard agent table |
-| Conversation view: name, phone, assigned agent, messages, send | Conversations, then a customer |
+| Conversation view: name, phone, assigned agent, messages, send | Conversations, then View messages |
 
-Added on top, because a support lead would want them:
+The dashboard shows only what the brief asks for. Two rules apply behind the numbers:
 
-- **Needs attention now:** open conversations with no human reply yet, longest wait first.
-- **Closed without a reply:** conversations closed before any human answered. Counted separately so they do not distort resolution time.
-- **Bot vs human:** the store's AI assistant replies within seconds. Its replies are excluded from response times and labelled in the thread.
-- **CSAT:** surveys sent, answered and average rating, overall and per agent.
-- **Chat timeline:** "assigned to" and "closed by" markers inside each conversation.
+- **The store's AI assistant is excluded** from response times, since it replies within seconds. Its messages still count in total messages and are labelled in the thread.
+- **Conversations closed with no human reply** have no resolution time, so they do not distort it.
 
 ### How the metrics are defined
 
