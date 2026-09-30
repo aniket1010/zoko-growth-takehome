@@ -31,11 +31,11 @@ export const zokoApi = {
   listCustomers: (page = 1, pageSize = 100) =>
     zoko<ZokoCustomerPage>(`/customer?channel=whatsapp&page=${page}&pageSize=${pageSize}&includeAssign=true`),
   /**
-   * Whole store in one request. Verified 30 Sep 2026: pageSize=5000 is accepted and
-   * returned all 1,343 test-store customers in ~3 s. Sorting newest-first is useless
+   * Whole store in one request. Verified 30 Sep 2026: max pageSize is 2000, which
+   * covers all 1,343 test-store customers in ~3 s. Page if a store exceeds 2000. Sorting newest-first is useless
    * here because customers who never messaged sort to the top.
    */
-  listAllCustomers: () => zoko<ZokoCustomerPage>(`/customer?channel=whatsapp&page=1&pageSize=5000&includeAssign=true`),
+  listAllCustomers: () => zoko<ZokoCustomerPage>(`/customer?channel=whatsapp&page=1&pageSize=2000&includeAssign=true`),
   listAgents: () => zoko<ZokoAgent[] | { agents: ZokoAgent[] }>(`/agent/agents`),
   listTemplates: () => zoko<unknown>(`/account/templates`),
   getMessage: (id: string) => zoko<unknown>(`/message/${id}`),

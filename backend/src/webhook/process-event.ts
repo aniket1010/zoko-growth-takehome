@@ -1,4 +1,4 @@
-import { and, desc, eq, lte, sql as dsql } from "drizzle-orm";
+import { and, desc, eq, isNull, lte, sql as dsql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { assignmentSnapshots, customers, messages, rawEvents } from "../db/schema.js";
 import { ZokoEvent } from "./zoko-payload.js";
@@ -12,7 +12,14 @@ export async function processRawEvent(rawId: number): Promise<void> {
     const evt = ZokoEvent.parse(row.payload);
 
     if (evt.event === "message:delivery:update") {
-      await db.update(messages).set({ deliveryStatus: evt.deliveryStatus }).where(eq(messages.id, evt.id));
+      const updated = await applyDeliveryStatus(evt.id, evt.deliveryStatus);
+      if (!updated) {
+        // The message itself has not been stored yet (events can arrive or finish
+        // processing out of order). Leave this unprocessed; it is applied as soon
+        // as the message row is inserted.
+        await db.update(rawEvents).set({ error: "waiting for message row" }).where(eq(rawEvents.id, rawId));
+        return;
+      }
     } else {
       const sentAt = new Date(evt.platformTimestamp);
       await db
@@ -57,6 +64,15 @@ export async function processRawEvent(rawId: number): Promise<void> {
           agentId,
         })
         .onConflictDoNothing();
+
+      // Apply any delivery updates that arrived before this message was stored.
+      const early = await db
+        .select({ id: rawEvents.id })
+        .from(rawEvents)
+        .where(and(eq(rawEvents.event, "message:delivery:update"), isNull(rawEvents.processedAt), dsql`${rawEvents.payload}->>'id' = ${evt.id}`));
+      await db.update(rawEvents).set({ processedAt: new Date(), error: null }).where(eq(rawEvents.id, rawId));
+      for (const e of early) await processRawEvent(e.id);
+      return;
     }
 
     await db.update(rawEvents).set({ processedAt: new Date(), error: null }).where(eq(rawEvents.id, rawId));
@@ -65,4 +81,24 @@ export async function processRawEvent(rawId: number): Promise<void> {
     await db.update(rawEvents).set({ error: String(err) }).where(eq(rawEvents.id, rawId));
     console.error(`raw_event ${rawId} failed`, err);
   }
+}
+
+/**
+ * Status only moves forward: a late "delivered" must not overwrite "read".
+ * "failed" always wins. Returns false if the message row does not exist yet.
+ */
+const STATUS_RANK = dsql`case lower(coalesce(${messages.deliveryStatus}, ''))
+  when 'failed' then 99 when 'read' then 4 when 'delivered' then 3
+  when 'sent' then 2 when 'accepted' then 1 else 0 end`;
+
+async function applyDeliveryStatus(messageId: string, status: string): Promise<boolean> {
+  const rank: Record<string, number> = { failed: 99, read: 4, delivered: 3, sent: 2, accepted: 1 };
+  const newRank = rank[status.toLowerCase()] ?? 0;
+  const exists = await db.select({ id: messages.id }).from(messages).where(eq(messages.id, messageId));
+  if (exists.length === 0) return false;
+  await db
+    .update(messages)
+    .set({ deliveryStatus: status })
+    .where(and(eq(messages.id, messageId), dsql`${STATUS_RANK} <= ${newRank}`));
+  return true;
 }

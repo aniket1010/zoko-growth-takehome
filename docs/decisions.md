@@ -15,6 +15,12 @@ The allowlist check runs immediately before the Zoko API call and returns 403 ot
 ## 004 Infer assignment history by polling, within the rate limit
 No assignment webhook exists. We poll the customer list and store a row only on change. Zoko allows one customer-list request per 300 seconds, so the poller fetches every customer in a single large page every 310 seconds. Gave up: a reassignment that happens and reverts within 5 minutes is invisible, and reassignment timestamps are only accurate to about 5 minutes.
 
+## 005 Delivery updates can arrive before their message
+Each event is parsed after its 200 is sent, so a status update can be processed before its message row exists. Found in a local test on 30 Sep 2026. An early update now stays unprocessed and is applied the moment its message is stored. Status only moves forward (accepted, sent, delivered, read), with failed overriding, so a late "delivered" cannot overwrite "read".
+
+## 006 Neon for Postgres
+Free, persistent, serverless Postgres on a personal account. The app uses the pooled connection string; migrations use the direct one. The Neon project also has Neon Auth enabled, which this app does not use.
+
 ## Open, to settle before building metrics
 - Conversation boundary: Zoko close event if one exists, otherwise an inactivity gap.
 - First response: does a bot or template reply count?

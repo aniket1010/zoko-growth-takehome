@@ -55,7 +55,10 @@ export async function syncAssignments(): Promise<{ customers: number; changes: n
 
 /** In-process poller. Stays just above Zoko's 300 s limit. Only runs while the service is awake. */
 export function startAssignmentPoller(intervalMs = 310_000) {
-  const tick = () => syncAssignments().catch((err) => console.error("assignment sync failed", err));
+  const tick = () =>
+    syncAssignments()
+      .then((r) => console.log(`assignment poll: ${r.customers} customers, ${r.changes} changes`))
+      .catch((err) => console.error("assignment sync failed", err));
   void tick();
   return setInterval(tick, intervalMs);
 }

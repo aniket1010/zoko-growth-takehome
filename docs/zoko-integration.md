@@ -39,7 +39,7 @@ We register `https://<render-host>/webhooks/zoko?token=<ZOKO_WEBHOOK_TOKEN>` for
 
 1. **No backfill.** There is no endpoint that lists a customer's messages. Metrics start when the webhook goes live. The raw event log is our only history, so it is append-only and replayable.
 2. **No agent on messages.** `message:store:out` does not say which agent sent it. We attribute a store message to the customer's assignee at that moment.
-3. **No assignment events.** Reassignments are inferred by polling `GET /customer?includeAssign=true` and diffing. The endpoint allows one request per 5 minutes, so each poll fetches the whole store in one page (`pageSize=5000`). A change that happens and reverts within 5 minutes is invisible.
+3. **No assignment events.** Reassignments are inferred by polling `GET /customer?includeAssign=true` and diffing. The endpoint allows one request per 5 minutes, so each poll fetches the whole store in one page (`pageSize=2000`, the maximum allowed). A change that happens and reverts within 5 minutes is invisible.
 4. **No close or CSAT events.** "Closed" and "CSAT asked/received" must be inferred or come from Zoko. Open question for the Zoko team.
 5. **No signature on webhooks.** Not documented, so we protect the endpoint with a secret token in the URL.
 
