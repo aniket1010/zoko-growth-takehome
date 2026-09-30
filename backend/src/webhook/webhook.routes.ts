@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Router, type RequestHandler } from "express";
 import { asc, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
@@ -11,9 +12,20 @@ export const webhookRouter = Router();
 // Zoko does not document request signing, so we put a secret in the URL we register.
 // Rejected requests are recorded (without secrets) so delivery problems can be debugged
 // from the database instead of the hosting logs.
+//
+// Zoko's HTTP client did not pass our base64 token through the query string intact
+// (it arrived empty, 30 Sep 2026). So the registered URL carries a path key instead:
+// the first 32 hex chars of sha256(ZOKO_WEBHOOK_TOKEN). Hex survives any URL handling.
+export const webhookPathKey = env.ZOKO_WEBHOOK_TOKEN
+  ? createHash("sha256").update(env.ZOKO_WEBHOOK_TOKEN).digest("hex").slice(0, 32)
+  : "";
+
 const requireToken: RequestHandler = async (req, res, next) => {
-  if (env.ZOKO_WEBHOOK_TOKEN && req.query.token !== env.ZOKO_WEBHOOK_TOKEN) {
-    const token = typeof req.query.token === "string" ? req.query.token : "";
+  const queryToken = typeof req.query.token === "string" ? req.query.token : "";
+  const pathKey = typeof req.params.key === "string" ? req.params.key : "";
+  const authorised = !env.ZOKO_WEBHOOK_TOKEN || queryToken === env.ZOKO_WEBHOOK_TOKEN || pathKey === webhookPathKey;
+  if (!authorised) {
+    const token = queryToken;
     const headers = Object.fromEntries(
       Object.entries(req.headers).filter(([k]) => !["authorization", "cookie"].includes(k)),
     );
@@ -23,7 +35,9 @@ const requireToken: RequestHandler = async (req, res, next) => {
         dedupeKey: `rejected:${Date.now()}:${Math.random()}`,
         event: "debug:rejected",
         payload: {
-          reason: token ? "token mismatch" : "token missing",
+          reason: pathKey ? "path key mismatch" : token ? "token mismatch" : "token missing",
+          // Shape of the raw URL with letters and digits masked, to see how it was mangled.
+          urlShape: req.originalUrl.replace(/[A-Za-z0-9]/g, "x").slice(0, 200),
           tokenLength: token.length,
           expectedLength: env.ZOKO_WEBHOOK_TOKEN.length,
           path: req.path,
@@ -45,7 +59,7 @@ const requireToken: RequestHandler = async (req, res, next) => {
  * Zoko needs a 200 within 5 seconds or it retries (up to 5x), and disables the
  * webhook after 6 consecutive failures. So: store, acknowledge, then process.
  */
-webhookRouter.post("/zoko", requireToken, async (req, res) => {
+webhookRouter.post(["/zoko", "/zoko/:key"], requireToken, async (req, res) => {
   const body = req.body ?? {};
   const [inserted] = await db
     .insert(rawEvents)
