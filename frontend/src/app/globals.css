@@ -2,43 +2,79 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* next-themes puts `.dark` on <html>; "system" resolves to it too. */
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Design tokens. Sources and rules are in frontend/DESIGN.md.
+ * Everything below is referenced by role (bg-card, text-good, bg-brand-soft...),
+ * never by raw hex inside components.
+ */
 @theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand */
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-line: var(--brand-line);
+
+  /* Status (reserved: only for good / warning / bad verdicts) */
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+
+  /* Chat bubbles */
+  --color-bubble-customer: var(--bubble-customer);
+  --color-bubble-agent: var(--bubble-agent);
+  --color-bubble-bot: var(--bubble-bot);
+  --color-bot-ink: var(--bot-ink);
+  --color-tick-seen: var(--tick-seen);
+
+  /* Chart series (validated with the dataviz palette checker, see DESIGN.md) */
+  --color-series-customer: var(--series-customer);
+  --color-series-bot: var(--series-bot);
+  --color-series-agent: var(--series-agent);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,82 +85,155 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  color-scheme: light;
+  --radius: 0.375rem; /* 6px: Zoko buttons and inputs */
+
+  /* Surfaces */
+  --background: #f5f5f5; /* app canvas, sampled from the Zoko web app */
+  --card: #ffffff; /* panels */
+  --card-foreground: #222525;
+  --popover: #ffffff;
+  --popover-foreground: #222525;
+  --sidebar: #ededed;
+  --sidebar-foreground: #222525;
+  --sidebar-accent: #e0e0e0; /* active nav row, like Zoko's selected "Webhooks" */
+  --sidebar-accent-foreground: #222525;
+  --sidebar-primary: #ff6937;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-border: #e3e3e3;
+  --sidebar-ring: #ff6937;
+
+  /* Text */
+  --foreground: #222525; /* zoko.io --gray-1 */
+  --muted-foreground: #62636b; /* zoko.io --gray-2 */
+
+  /* Lines and fills */
+  --border: #e6e6e6;
+  --input: #e2e2e2;
+  --ring: #ff6937;
+  --muted: #f3f3f3;
+  --secondary: #f1f1f1;
+  --secondary-foreground: #222525;
+  --accent: #f1f1f1;
+  --accent-foreground: #222525;
+
+  /* Brand */
+  --brand: #ff6937; /* Zoko orange: app buttons, brief PDF, zoko.io */
+  --brand-ink: #bf441c; /* zoko.io --accent #cc4a1f, one step darker so orange text passes AA on the orange tint */
+  --brand-soft: #fff1eb;
+  --brand-line: #f7dfd7; /* zoko.io --secondary, Zoko's disabled "Create" */
+  --primary: #ff6937;
+  --primary-foreground: #ffffff;
+
+  /* Status */
+  --good: #1a7547;
+  --good-soft: #e7f5ed;
+  --warning: #a35f00;
+  --warning-soft: #fff4d6;
+  --bad: #c42b2b;
+  --bad-soft: #fdeceb;
+  --destructive: #c42b2b;
+
+  /* Chat */
+  --bubble-customer: #ffffff;
+  --bubble-agent: #fff1eb;
+  --bubble-bot: #f1eefc;
+  --bot-ink: #5a45b8;
+  --tick-seen: #2f80ed;
+
+  /* Chart series: customer / bot / agent, in stacking order */
+  --series-customer: #068466;
+  --series-bot: #6e56cf;
+  --series-agent: #ff6937;
+
+  --chart-1: #ff6937;
+  --chart-2: #068466;
+  --chart-3: #6e56cf;
+  --chart-4: #f5b400;
+  --chart-5: #62636b;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+
+  --background: #121214;
+  --card: #1b1b1e;
+  --card-foreground: #ececee;
+  --popover: #1f1f23;
+  --popover-foreground: #ececee;
+  --sidebar: #17171a;
+  --sidebar-foreground: #ececee;
+  --sidebar-accent: #26262b;
+  --sidebar-accent-foreground: #ececee;
+  --sidebar-primary: #ff6937;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-border: #26262b;
+  --sidebar-ring: #ff6937;
+
+  --foreground: #ececee;
+  --muted-foreground: #a1a1aa;
+
+  --border: #2a2a2f;
+  --input: #34343a;
+  --ring: #ff6937;
+  --muted: #232327;
+  --secondary: #26262b;
+  --secondary-foreground: #ececee;
+  --accent: #26262b;
+  --accent-foreground: #ececee;
+
+  --brand: #ff6937;
+  --brand-ink: #ff8a60;
+  --brand-soft: #34201a;
+  --brand-line: #5a2f22;
+  --primary: #ff6937;
+  --primary-foreground: #ffffff;
+
+  --good: #4cc38a;
+  --good-soft: #15291f;
+  --warning: #f5b400;
+  --warning-soft: #2e2610;
+  --bad: #f07373;
+  --bad-soft: #341a1a;
+  --destructive: #f07373;
+
+  --bubble-customer: #232327;
+  --bubble-agent: #34201a;
+  --bubble-bot: #241f3a;
+  --bot-ink: #b3a6f5;
+  --tick-seen: #5aa2ff;
+
+  --series-customer: #1a9c7c;
+  --series-bot: #8471e0;
+  --series-agent: #ec5f2e;
+
+  --chart-1: #ec5f2e;
+  --chart-2: #1a9c7c;
+  --chart-3: #8471e0;
+  --chart-4: #c98500;
+  --chart-5: #a1a1aa;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+  }
+  body {
+    @apply bg-background text-sm text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  /* Uppercase micro label used for section headings and table headers, as in Zoko ("WEBHOOKS & API"). */
+  .label-caps {
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
   }
 }

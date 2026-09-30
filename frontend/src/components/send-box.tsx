@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LockKeyhole, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,21 +34,32 @@ export function SendBox({ customerId }: { customerId: string }) {
 
   return (
     <div className="space-y-2">
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Type a reply…"
-        rows={3}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void onSend();
-        }}
-      />
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">Only allowlisted test numbers can be messaged. Free text works within 24h of the customer&apos;s last message.</p>
-        <Button onClick={onSend} disabled={sending || !text.trim()}>
+      <div className="flex items-end gap-2">
+        <label htmlFor="reply" className="sr-only">
+          Reply
+        </label>
+        <Textarea
+          id="reply"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type a reply…"
+          rows={2}
+          className="max-h-40 min-h-10 resize-none bg-background text-[13px] md:text-[13px]"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void onSend();
+          }}
+        />
+        <Button onClick={onSend} disabled={sending || !text.trim()} className="h-10 px-3.5">
+          <Send aria-hidden />
           {sending ? "Sending…" : "Send"}
         </Button>
       </div>
+      <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+        <LockKeyhole className="mt-px size-3 shrink-0" aria-hidden />
+        <span>
+          Only allowlisted test numbers can be messaged. Free text works within 24h of the customer&apos;s last message. Ctrl+Enter to send.
+        </span>
+      </p>
     </div>
   );
 }

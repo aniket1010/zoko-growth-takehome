@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import { Nav } from "@/components/nav";
+import { ThemeProvider } from "@/components/theme";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+// Inter is the main UI face on zoko.io; Geist Mono only for phone numbers.
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -14,11 +16,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-muted/30">
-        <Nav />
-        {children}
-        <Toaster />
+    <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
+      <body className="min-h-full">
+        <ThemeProvider>
+          <div className="flex min-h-dvh flex-col md:flex-row">
+            <Nav />
+            <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+          </div>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
