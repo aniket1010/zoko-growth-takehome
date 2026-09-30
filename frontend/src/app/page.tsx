@@ -1,30 +1,31 @@
 import Link from "next/link";
+import { AttentionQueue, MetricSummary, Observations } from "@/components/dashboard-summary";
+import { RefreshButton } from "@/components/refresh-button";
 import { Avatar } from "@/components/avatar";
 import { Page, PageHeader, Panel, PanelBody, PanelHeader } from "@/components/panel";
 import { ErrorState } from "@/components/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { api, type AgentRow, type Overview } from "@/lib/api";
+import { api, type AgentRow, type Overview, type AttentionRow, type ConversationMetric } from "@/lib/api";
 import { duration, phone } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-/** One number with a label. Kept deliberately plain: exactly what the brief asks for. */
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Panel className="p-5 sm:p-6">
-      <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
-      <p className="mt-3 text-[32px] leading-tight font-semibold tracking-tight tabular-nums">{value}</p>
-    </Panel>
-  );
-}
-
 export default async function Dashboard() {
   let o: Overview, agents: AgentRow[];
+  let attention: AttentionRow[] | null = null;
+  let metrics: ConversationMetric[] | null = null;
   try {
-    [o, agents] = await Promise.all([api.overview(), api.agents()]);
+    const [overviewResult, agentResult, attentionResult, metricResult] = await Promise.allSettled([api.overview(), api.agents(), api.attention(), api.conversationMetrics()]);
+    if (overviewResult.status === "rejected") throw overviewResult.reason;
+    if (agentResult.status === "rejected") throw agentResult.reason;
+    o = overviewResult.value;
+    agents = agentResult.value;
+    if (attentionResult.status === "fulfilled") attention = attentionResult.value;
+    if (metricResult.status === "fulfilled") metrics = metricResult.value;
   } catch (e) {
     return (
       <Page>
+        <PageHeader title="Support overview" action={<RefreshButton />} />
         <ErrorState error={e instanceof Error ? e.message : String(e)} />
       </Page>
     );
@@ -32,22 +33,17 @@ export default async function Dashboard() {
 
   return (
     <Page>
-      <PageHeader title="Dashboard" description="All store messages since the webhook went live. Response times count human agents only." />
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Metric label="Total messages" value={o.total_messages} />
-        <Metric label="Avg first response time" value={duration(o.avg_frt_seconds)} />
-        <Metric label="Median first response time" value={duration(o.median_frt_seconds)} />
-        <Metric label="Avg resolution time" value={duration(o.avg_resolution_seconds)} />
-        <Metric label="Median resolution time" value={duration(o.median_resolution_seconds)} />
-      </section>
+      <PageHeader title="Support overview" description="All store activity since collection began. A closer look at your team's response and resolution." action={<RefreshButton />} />
+      <MetricSummary overview={o} metrics={metrics} />
+      <AttentionQueue rows={attention} />
+      <Observations metrics={metrics} />
 
       <Panel>
         <PanelHeader
-          title="Per agent"
-          description="FRT goes to the agent who replied first, resolution to the agent who owned the chat when it closed, and a reassignment to the agent the chat was taken from."
+          title="Team performance"
+          description="Average and median times by agent, with reassigned conversations."
         />
-        <PanelBody className="overflow-x-auto">
+        <PanelBody className="overflow-x-auto" role="region" aria-label="Scrollable table" tabIndex={0}>
           {agents.length === 0 ? (
             <p className="text-sm text-muted-foreground">No agent activity yet.</p>
           ) : (
@@ -86,7 +82,7 @@ export default async function Dashboard() {
 
       <Panel>
         <PanelHeader title="Messages per customer" />
-        <PanelBody className="overflow-x-auto">
+        <PanelBody className="overflow-x-auto" role="region" aria-label="Scrollable table" tabIndex={0}>
           {o.messages_per_customer.length === 0 ? (
             <p className="text-sm text-muted-foreground">No messages yet.</p>
           ) : (

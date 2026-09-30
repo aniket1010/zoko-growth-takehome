@@ -80,6 +80,19 @@ export type MessageRow = {
 
 export type ChatEventRow = { kind: "assigned" | "closed"; event_at: string; closed_by_type: string | null; agent_name: string | null };
 
+export type ConversationMetric = {
+  customer_id: string;
+  customer_name: string | null;
+  gen: number;
+  started_at: string;
+  first_reply_at: string | null;
+  closed_at: string | null;
+  frt_seconds: number | null;
+  resolution_seconds: number | null;
+  closed_without_reply: boolean;
+  reassigned: boolean;
+};
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
@@ -90,6 +103,7 @@ export const api = {
   overview: () => get<Overview>("/api/metrics/overview"),
   agents: () => get<AgentRow[]>("/api/metrics/agents"),
   attention: () => get<AttentionRow[]>("/api/metrics/attention"),
+  conversationMetrics: () => get<ConversationMetric[]>("/api/metrics/conversations"),
   conversations: () => get<ConversationRow[]>("/api/conversations"),
   customer: (id: string) => get<CustomerDetail>(`/api/conversations/${id}`),
   messages: (id: string) => get<MessageRow[]>(`/api/conversations/${id}/messages`),
