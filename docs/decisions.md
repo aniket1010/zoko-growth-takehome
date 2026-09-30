@@ -26,6 +26,8 @@ Free, persistent, serverless Postgres on a personal account. The app uses the po
 - **First response time:** first customer message to the first human agent reply. Human replies carry `agentEmail`; the store's AI assistant does not, so bot replies are excluded. The CSAT survey is not a response.
 - **Resolution time:** first customer message to the close event.
 - **Per agent:** FRT is credited to the agent who replied, resolution to the agent who owned the chat at close, and a reassignment to the agent the chat was taken from.
+- **Reassignment history** combines `zoko:chat:assigned` events with the 5-minute customer-list poll. On 30 Sep 2026 the poll caught a reassignment that produced no webhook event, so the poll stays as a backup.
+- **Closed without reply:** a conversation closed with no human reply has no resolution time and is counted separately.
 - **CSAT:** asked = the `zoko_csat_test_v0` template was sent; received = a button reply whose `context.template_id` is that template; the rating is `context.postback`.
 - **Scope:** all store activity since the webhook went live, including other candidates' test chats.
 Gave up: conversations that began before the webhook went live start at the first message we saw, so their times are understated.

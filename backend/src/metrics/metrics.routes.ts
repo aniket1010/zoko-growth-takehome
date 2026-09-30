@@ -16,9 +16,12 @@ export const metricsRouter = Router();
  *                   CSAT survey template do not count as a response.
  * - closed_at     = the chat:closed event that ends it (null = still open)
  * - FRT           = first_reply - started_at, credited to the agent who replied
- * - Resolution    = closed_at - started_at, credited to the agent who owned it at close
- * - Reassigned    = a chat:assigned event inside the conversation moved it from one
- *                   agent to a different one; credited to the agent it was taken from
+ * - Resolution    = closed_at - started_at, credited to the agent who owned it at close.
+ *                   Only for conversations a human replied to; closing without any
+ *                   human reply is counted separately as closed_without_reply.
+ * - Reassigned    = the assignee changed from one agent to a different one during the
+ *                   conversation (webhook event or poll); credited to the agent it was
+ *                   taken from
  */
 const conversations = () => sql`
   with closes as (
@@ -54,18 +57,22 @@ const conversations = () => sql`
     where b.started_at is not null
   ),
   handoffs as (
-    -- each assignment inside a conversation, with the owner it replaced
-    select c.customer_id, c.gen, a.agent_id as to_agent,
-           (select s.agent_id from chat_events s
-             where s.customer_id = a.customer_id and s.kind = 'assigned' and s.event_at < a.event_at
-             order by s.event_at desc limit 1) as from_agent
+    -- Assignment history = zoko:chat:assigned events plus the 5-minute customer-list
+    -- poll (both are written to assignment_snapshots). The poll is needed because some
+    -- assignment changes never produce a webhook event (seen 30 Sep 2026).
+    select c.customer_id, c.gen, s.assignee_id as to_agent,
+           (select p.assignee_id from assignment_snapshots p
+             where p.customer_id = s.customer_id and p.observed_at < s.observed_at
+             order by p.observed_at desc limit 1) as from_agent
     from conv c
-    join chat_events a on a.customer_id = c.customer_id and a.kind = 'assigned'
-      and a.event_at >= c.started_at and a.event_at <= coalesce(c.closed_at, now())
+    join assignment_snapshots s on s.customer_id = c.customer_id
+      and s.observed_at >= c.started_at and s.observed_at <= coalesce(c.closed_at, now())
   )
   select c.*,
          extract(epoch from (c.first_reply_at - c.started_at))::float as frt_seconds,
-         extract(epoch from (c.closed_at - c.started_at))::float as resolution_seconds,
+         case when c.first_reply_at is not null
+              then extract(epoch from (c.closed_at - c.started_at))::float end as resolution_seconds,
+         (c.closed_at is not null and c.first_reply_at is null) as closed_without_reply,
          exists (select 1 from handoffs h where h.customer_id = c.customer_id and h.gen = c.gen
                    and h.from_agent is not null and h.from_agent is distinct from h.to_agent) as reassigned,
          (select array_agg(distinct h.from_agent) from handoffs h
@@ -93,6 +100,7 @@ metricsRouter.get("/overview", async (_req, res) => {
     select count(*)::int as conversations,
            count(*) filter (where closed_at is not null)::int as closed,
            count(*) filter (where first_reply_at is null and closed_at is null)::int as awaiting_first_reply,
+           count(*) filter (where closed_without_reply)::int as closed_without_reply,
            count(*) filter (where reassigned)::int as reassigned,
            ${stats("frt_seconds")}, ${stats("resolution_seconds")}
     from c`;
@@ -121,11 +129,23 @@ metricsRouter.get("/agents", async (_req, res) => {
     ),
     res as (
       select closed_by_agent as agent_id, count(*)::int as closed_conversations, ${stats("resolution_seconds")}
-      from c where closed_by_agent is not null group by 1
+      from c where closed_by_agent is not null and resolution_seconds is not null group by 1
     ),
     re as (
       select unnest(reassigned_from) as agent_id, count(*)::int as reassigned_chats
       from c where reassigned group by 1
+    ),
+    csat as (
+      select q.agent_id, count(r.id)::int as csat_received, avg(r.postback::numeric)::float as csat_avg
+      from messages q
+      join lateral (
+        select id, postback from messages r
+        where r.customer_id = q.customer_id and r.reply_to_template = 'zoko_csat_test_v0'
+          and r.sent_at > q.sent_at and r.postback ~ '^[1-5]$'
+        order by r.sent_at limit 1
+      ) r on true
+      where q.template_name = 'zoko_csat_test_v0' and q.agent_id is not null
+      group by 1
     ),
     sent as (
       select agent_id, count(*)::int as messages_sent from messages where sender_type = 'agent' and agent_id is not null group by 1
@@ -136,8 +156,10 @@ metricsRouter.get("/agents", async (_req, res) => {
            frt.avg_frt_seconds, frt.median_frt_seconds,
            coalesce(res.closed_conversations, 0) as closed_conversations,
            res.avg_resolution_seconds, res.median_resolution_seconds,
-           coalesce(re.reassigned_chats, 0) as reassigned_chats
+           coalesce(re.reassigned_chats, 0) as reassigned_chats,
+           coalesce(csat.csat_received, 0) as csat_received, csat.csat_avg
     from agents a
+    left join csat on csat.agent_id = a.id
     left join frt on frt.agent_id = a.id
     left join res on res.agent_id = a.id
     left join re on re.agent_id = a.id
@@ -154,5 +176,24 @@ metricsRouter.get("/conversations", async (_req, res) => {
     select c.*, cu.name as customer_name
     from c join customers cu on cu.id = c.customer_id
     order by c.started_at desc`;
+  res.json(rows);
+});
+
+/**
+ * Own feature: the queue a support lead should look at right now. Open conversations
+ * with no human reply yet, longest wait first.
+ */
+metricsRouter.get("/attention", async (_req, res) => {
+  const rows = await sql`
+    with c as (${conversations()})
+    select c.customer_id, cu.name as customer_name, cu.phone, c.started_at,
+           extract(epoch from (now() - c.started_at))::float as waiting_seconds,
+           c.message_count,
+           (select trim(coalesce(nullif(trim(coalesce(a.first_name,'') || ' ' || coalesce(a.last_name,'')), ''), a.email))
+              from assignment_snapshots s join agents a on a.id = s.assignee_id
+             where s.customer_id = c.customer_id order by s.observed_at desc limit 1) as assignee_name
+    from c join customers cu on cu.id = c.customer_id
+    where c.closed_at is null and c.first_reply_at is null
+    order by c.started_at asc`;
   res.json(rows);
 });
