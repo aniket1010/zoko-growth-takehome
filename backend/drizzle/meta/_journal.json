@@ -15,6 +15,13 @@
       "when": 1790777393979,
       "tag": "0001_chat_events",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790777698269,
+      "tag": "0002_message_sender",
+      "breakpoints": true
     }
   ]
 }

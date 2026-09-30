@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, lte, sql as dsql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { assignmentSnapshots, chatEvents, customers, messages, rawEvents } from "../db/schema.js";
+import { agents, assignmentSnapshots, chatEvents, customers, messages, rawEvents } from "../db/schema.js";
 import { PARSED_EVENTS, ZokoEvent } from "./zoko-payload.js";
 
 /** Parse one stored raw event into the domain tables. Safe to run twice. */
@@ -65,9 +65,17 @@ export async function processRawEvent(rawId: number): Promise<void> {
           },
         });
 
-      // Attribute store messages to whoever was assigned when it was sent.
+      // Store messages: a human reply carries agentEmail, so credit that agent.
+      // Anything else (AI assistant, automations) is a bot. As a fallback for
+      // agent replies we cannot match by email, use the assignee at send time.
       let agentId: string | null = null;
-      if (evt.direction === "FROM_STORE") {
+      const agentEmail = evt.agentEmail ?? null;
+      const senderType = evt.direction === "FROM_CUSTOMER" ? "customer" : agentEmail ? "agent" : "bot";
+      if (agentEmail) {
+        const [a] = await db.select({ id: agents.id }).from(agents).where(dsql`lower(${agents.email}) = lower(${agentEmail})`);
+        agentId = a?.id ?? null;
+      }
+      if (senderType === "agent" && !agentId) {
         const [snap] = await db
           .select({ assigneeId: assignmentSnapshots.assigneeId })
           .from(assignmentSnapshots)
@@ -88,8 +96,24 @@ export async function processRawEvent(rawId: number): Promise<void> {
           sentAt,
           deliveryStatus: evt.deliveryStatus ?? null,
           agentId,
+          senderType,
+          agentEmail,
+          templateName: evt.templateName ?? null,
+          replyToTemplate: evt.context?.template_id ?? null,
+          postback: evt.context?.postback ?? null,
         })
-        .onConflictDoNothing();
+        // Re-processing (replay) refreshes the derived fields but keeps delivery status.
+        .onConflictDoUpdate({
+          target: messages.id,
+          set: {
+            agentId: dsql`excluded.agent_id`,
+            senderType: dsql`excluded.sender_type`,
+            agentEmail: dsql`excluded.agent_email`,
+            templateName: dsql`excluded.template_name`,
+            replyToTemplate: dsql`excluded.reply_to_template`,
+            postback: dsql`excluded.postback`,
+          },
+        });
 
       // Apply any delivery updates that arrived before this message was stored.
       const early = await db

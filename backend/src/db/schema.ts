@@ -57,9 +57,14 @@ export const messages = pgTable(
     text: text("text"),
     sentAt: timestamp("sent_at", { withTimezone: true }).notNull(), // platformTimestamp
     deliveryStatus: text("delivery_status"),
-    // The outgoing webhook payload has no agent field. We attribute a store
-    // message to whoever was assigned at the time (see assignment_snapshots).
+    // Who sent a store message. Human replies from Zoko's web app carry agentEmail;
+    // the store's AI assistant and automations do not.
     agentId: text("agent_id"),
+    senderType: text("sender_type"), // customer | agent | bot
+    agentEmail: text("agent_email"),
+    templateName: text("template_name"), // outgoing template, e.g. zoko_csat_test_v0
+    replyToTemplate: text("reply_to_template"), // incoming button reply: which template it answers
+    postback: text("postback"), // incoming button reply value, e.g. the CSAT rating
   },
   (t) => [index("messages_customer_sent_idx").on(t.customerId, t.sentAt)],
 );

@@ -17,6 +17,14 @@ const MessageEvent = z
     deliveryStatus: z.string().optional(),
     type: z.string().optional(),
     text: z.string().optional(),
+    // Present on real payloads, not in the docs (observed 30 Sep 2026).
+    agentEmail: z.string().nullish(),
+    appType: z.string().nullish(),
+    templateName: z.string().nullish(),
+    context: z
+      .object({ postback: z.string().nullish(), template_id: z.string().nullish() })
+      .passthrough()
+      .nullish(),
   })
   .passthrough();
 
