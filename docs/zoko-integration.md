@@ -39,11 +39,13 @@ We register `https://<render-host>/webhooks/zoko?token=<ZOKO_WEBHOOK_TOKEN>` for
 
 1. **No backfill.** There is no endpoint that lists a customer's messages. Metrics start when the webhook goes live. The raw event log is our only history, so it is append-only and replayable.
 2. **No agent on messages.** `message:store:out` does not say which agent sent it. We attribute a store message to the customer's assignee at that moment.
-3. **No assignment events.** Reassignments are inferred by polling `GET /customer?includeAssign=true` and diffing. The endpoint allows one request per 5 minutes, so we fetch one page per poll. Changes faster than a full pass over all pages are merged or missed.
+3. **No assignment events.** Reassignments are inferred by polling `GET /customer?includeAssign=true` and diffing. The endpoint allows one request per 5 minutes, so each poll fetches the whole store in one page (`pageSize=5000`). A change that happens and reverts within 5 minutes is invisible.
 4. **No close or CSAT events.** "Closed" and "CSAT asked/received" must be inferred or come from Zoko. Open question for the Zoko team.
 5. **No signature on webhooks.** Not documented, so we protect the endpoint with a secret token in the URL.
 
 ## Observed in the test store (30 Sep 2026)
 
 - `GET /agent/agents` returns a plain array of 33 agents, no paging. `lastName` can be `null` or empty, and some `firstName` values are blank or an email address.
+- `GET /customer` with `pageSize=2000` returned all 1,343 customers in one response. 12 are assigned, none to a team. Assignment shape is `{ id, name, team, email? }`. 1,247 customers have never sent a message; 85 messaged in 2026.
+- Sorting by `lastIncomingMessageAt desc` puts customers with no messages first, so it is not useful for polling.
 - The store is shared with Zoko staff and other candidates, so the webhook will carry their activity too.

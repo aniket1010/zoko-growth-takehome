@@ -19,7 +19,8 @@ export type ZokoCustomer = {
   channel?: string;
   channelId?: string; // phone for WhatsApp
   lastIncomingMessageAt?: string;
-  assignment?: { id?: string; type?: string; [k: string]: unknown } | null;
+  // Observed shape: { id, name, team: boolean, email? }. id is null when unassigned.
+  assignment?: { id: string | null; name: string | null; team: boolean; email?: string } | null;
   [k: string]: unknown;
 };
 export type ZokoCustomerPage = { currentPage: number; totalPages: number; totalCustomers: number; customers: ZokoCustomer[] };
@@ -29,6 +30,12 @@ export const zokoApi = {
   // `channel` is required. Zoko rate-limits this endpoint to 1 request per 300 seconds.
   listCustomers: (page = 1, pageSize = 100) =>
     zoko<ZokoCustomerPage>(`/customer?channel=whatsapp&page=${page}&pageSize=${pageSize}&includeAssign=true`),
+  /**
+   * Whole store in one request. Verified 30 Sep 2026: pageSize=5000 is accepted and
+   * returned all 1,343 test-store customers in ~3 s. Sorting newest-first is useless
+   * here because customers who never messaged sort to the top.
+   */
+  listAllCustomers: () => zoko<ZokoCustomerPage>(`/customer?channel=whatsapp&page=1&pageSize=5000&includeAssign=true`),
   listAgents: () => zoko<ZokoAgent[] | { agents: ZokoAgent[] }>(`/agent/agents`),
   listTemplates: () => zoko<unknown>(`/account/templates`),
   getMessage: (id: string) => zoko<unknown>(`/message/${id}`),

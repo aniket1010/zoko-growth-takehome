@@ -22,16 +22,12 @@ export async function syncAgents(): Promise<number> {
  * Zoko has no assignment webhook, so we poll customers with their current
  * assignee and write a snapshot row only when it changed since the last poll.
  *
- * GET /customer is rate-limited to 1 request per 300 seconds, so each call
- * fetches ONE page and remembers where it got to. With N pages, a full pass
- * takes N x 5 minutes. Limitation to state in the README: changes faster than
- * a full pass are merged or missed.
+ * GET /customer is rate-limited to 1 request per 300 seconds, so each poll
+ * reads the whole store in one large page. Limitation for the README: a
+ * reassignment that happens and reverts within one 5-minute poll is invisible.
  */
-let nextPage = 1;
-
-export async function syncAssignments(): Promise<{ page: number; totalPages: number; customers: number; changes: number }> {
-  const page = nextPage;
-  const res = await zokoApi.listCustomers(page);
+export async function syncAssignments(): Promise<{ customers: number; changes: number }> {
+  const res = await zokoApi.listAllCustomers();
   let changes = 0;
   for (const c of res.customers ?? []) {
     await db
@@ -50,13 +46,11 @@ export async function syncAssignments(): Promise<{ page: number; totalPages: num
       .orderBy(desc(assignmentSnapshots.observedAt))
       .limit(1);
     if (!last || last.assigneeId !== assigneeId) {
-      await db.insert(assignmentSnapshots).values({ customerId: c.id, assigneeId, assigneeType: c.assignment?.type ?? null });
+      await db.insert(assignmentSnapshots).values({ customerId: c.id, assigneeId, assigneeType: assigneeId ? (c.assignment?.team ? "team" : "agent") : null });
       changes++;
     }
   }
-  const totalPages = res.totalPages ?? 1;
-  nextPage = page >= totalPages ? 1 : page + 1;
-  return { page, totalPages, customers: res.customers?.length ?? 0, changes };
+  return { customers: res.customers?.length ?? 0, changes };
 }
 
 /** In-process poller. Stays just above Zoko's 300 s limit. Only runs while the service is awake. */

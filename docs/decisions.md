@@ -13,7 +13,7 @@ Zoko retries up to five times. A unique index on that key makes retries harmless
 The allowlist check runs immediately before the Zoko API call and returns 403 otherwise. An empty allowlist sends nothing. The UI cannot bypass it.
 
 ## 004 Infer assignment history by polling, within the rate limit
-No assignment webhook exists. We poll the customer list and store a row only on change. Zoko allows one customer-list request per 300 seconds, so the poller fetches one page every 310 seconds and cycles through pages. Gave up: a reassignment that happens and reverts within one full pass is invisible, and reassignment timestamps are only accurate to the poll interval.
+No assignment webhook exists. We poll the customer list and store a row only on change. Zoko allows one customer-list request per 300 seconds, so the poller fetches every customer in a single large page every 310 seconds. Gave up: a reassignment that happens and reverts within 5 minutes is invisible, and reassignment timestamps are only accurate to about 5 minutes.
 
 ## Open, to settle before building metrics
 - Conversation boundary: Zoko close event if one exists, otherwise an inactivity gap.
