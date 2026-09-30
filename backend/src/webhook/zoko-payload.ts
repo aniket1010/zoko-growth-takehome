@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 // Shapes from https://docs.zoko.io/webhooks/webhook-payload
@@ -31,6 +32,20 @@ const DeliveryEvent = z
 export const ZokoEvent = z.discriminatedUnion("event", [MessageEvent, DeliveryEvent]);
 export type ZokoEvent = z.infer<typeof ZokoEvent>;
 
-/** Same message can produce several delivery updates, so status is part of the key. */
-export const dedupeKeyFor = (body: { event?: unknown; id?: unknown; deliveryStatus?: unknown }) =>
-  `${String(body.event)}:${String(body.id)}:${String(body.deliveryStatus ?? "")}`;
+/**
+ * Message events: event + message id + status (one message gets several delivery updates).
+ * Anything else (chat closed, chat assigned, undocumented events): we do not know yet
+ * whether they carry a unique id, so we key on a hash of the exact body. A Zoko retry
+ * sends identical bytes, so it is still deduplicated; two different closes are not.
+ */
+export const dedupeKeyFor = (
+  body: { event?: unknown; id?: unknown; deliveryStatus?: unknown },
+  rawBody?: Buffer,
+) => {
+  const event = String(body.event ?? "unknown");
+  if (event.startsWith("message:") && typeof body.id === "string") {
+    return `${event}:${body.id}:${String(body.deliveryStatus ?? "")}`;
+  }
+  const bytes = rawBody ?? Buffer.from(JSON.stringify(body));
+  return `${event}:sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+};

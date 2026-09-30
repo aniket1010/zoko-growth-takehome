@@ -26,7 +26,7 @@ webhookRouter.post("/zoko", requireToken, async (req, res) => {
   const body = req.body ?? {};
   const [inserted] = await db
     .insert(rawEvents)
-    .values({ dedupeKey: dedupeKeyFor(body), event: String(body.event ?? "unknown"), payload: body })
+    .values({ dedupeKey: dedupeKeyFor(body, (req as { rawBody?: Buffer }).rawBody), event: String(body.event ?? "unknown"), payload: body })
     .onConflictDoNothing({ target: rawEvents.dedupeKey })
     .returning({ id: rawEvents.id });
 

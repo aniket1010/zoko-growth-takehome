@@ -8,6 +8,11 @@ export async function processRawEvent(rawId: number): Promise<void> {
   const [row] = await db.select().from(rawEvents).where(eq(rawEvents.id, rawId));
   if (!row || row.processedAt) return;
 
+  // Events we do not parse yet (e.g. zoko:chat:closed, zoko:chat:assigned) stay in
+  // raw_events untouched, ready to be parsed once we have seen their real shape.
+  const eventName = (row.payload as { event?: string })?.event ?? "";
+  if (!["message:user:in", "message:store:out", "message:delivery:update"].includes(eventName)) return;
+
   try {
     const evt = ZokoEvent.parse(row.payload);
 
