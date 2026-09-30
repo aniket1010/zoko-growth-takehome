@@ -14,7 +14,8 @@ const EnvSchema = z.object({
   ZOKO_WEBHOOK_TOKEN: z.string().default(""),
   // Digits only, e.g. 919876543210. Anything not in here can never be messaged.
   SEND_ALLOWLIST: csv.transform((xs) => xs.map((x) => x.replace(/\D/g, ""))),
-  CORS_ORIGINS: csv,
+  // Browsers send Origin without a trailing slash, so normalise "https://x.vercel.app/" too.
+  CORS_ORIGINS: csv.transform((xs) => xs.map((x) => x.replace(/\/+$/, ""))),
   // Only ONE running instance should poll Zoko: the customer list allows 1 request per 300 s.
   POLL_ZOKO: z
     .enum(["true", "false"])
