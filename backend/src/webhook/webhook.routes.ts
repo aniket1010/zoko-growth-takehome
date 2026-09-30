@@ -54,6 +54,18 @@ const requireToken: RequestHandler = async (req, res, next) => {
   next();
 };
 
+// Must be registered before "/zoko/:key", or "replay" is treated as a path key.
+/** Re-run parsing for anything that failed or was never processed. */
+webhookRouter.post("/zoko/replay", requireToken, async (_req, res) => {
+  const pending = await db
+    .select({ id: rawEvents.id })
+    .from(rawEvents)
+    .where(isNull(rawEvents.processedAt))
+    .orderBy(asc(rawEvents.id));
+  for (const { id } of pending) await processRawEvent(id);
+  res.json({ replayed: pending.length });
+});
+
 /**
  * Register this URL with Zoko as  https://<host>/webhooks/zoko?token=<ZOKO_WEBHOOK_TOKEN>
  * Zoko needs a 200 within 5 seconds or it retries (up to 5x), and disables the
@@ -72,15 +84,4 @@ webhookRouter.post(["/zoko", "/zoko/:key"], requireToken, async (req, res) => {
   if (inserted) {
     processRawEvent(inserted.id).catch((err) => console.error("process failed", err));
   }
-});
-
-/** Re-run parsing for anything that failed or was never processed. */
-webhookRouter.post("/zoko/replay", requireToken, async (_req, res) => {
-  const pending = await db
-    .select({ id: rawEvents.id })
-    .from(rawEvents)
-    .where(isNull(rawEvents.processedAt))
-    .orderBy(asc(rawEvents.id));
-  for (const { id } of pending) await processRawEvent(id);
-  res.json({ replayed: pending.length });
 });
