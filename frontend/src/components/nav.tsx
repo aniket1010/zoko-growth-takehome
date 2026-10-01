@@ -27,8 +27,8 @@ export function Nav() {
     <>
       <aside className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex xl:w-[248px]">
         <div className="px-7 pt-9 pb-10"><Brand /></div>
-        <div className="mx-5 mb-9 flex items-center gap-3 rounded-lg border bg-background/70 px-3 py-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-md border bg-card text-xs font-semibold">SI</span>
+        <div className="mx-5 mb-9 flex items-center gap-3 rounded-lg border bg-card px-3 py-3 shadow-panel">
+          <span className="grid size-9 shrink-0 place-items-center rounded-md border bg-background text-xs font-semibold">SI</span>
           <div className="min-w-0">
             <p className="text-[13px] font-medium">Support intelligence</p>
             <p className="mt-0.5 text-xs text-muted-foreground">Your support workspace</p>
@@ -46,7 +46,7 @@ export function Nav() {
         </nav>
         <div className="mt-auto p-5">
           <div className="space-y-2 border-t pt-4">
-            <a href="https://chat.zoko.io" target="_blank" rel="noreferrer" className="flex min-h-10 items-center justify-between rounded-md px-2 text-[13px] text-muted-foreground hover:bg-sidebar-accent hover:text-foreground">
+            <a href="https://www.zoko.io/" target="_blank" rel="noopener noreferrer" className="flex min-h-10 items-center justify-between rounded-md px-2 text-[13px] text-muted-foreground hover:bg-sidebar-accent hover:text-foreground">
               Open Zoko <ArrowUpRight className="size-4" aria-hidden />
             </a>
             <ThemeToggle withLabel className="h-10 w-full justify-start" />
