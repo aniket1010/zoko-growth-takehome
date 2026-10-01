@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 
-/** A white panel on the grey canvas: thin border, soft corners, like Zoko's content cards. */
+/** A raised panel on the grey canvas: thin border, shared panel shadow, soft corners, like Zoko's content cards. */
 export function Panel({ className, ...props }: React.ComponentProps<"section">) {
-  return <section className={cn("min-w-0 rounded-xl border bg-card text-card-foreground", className)} {...props} />;
+  return <section className={cn("min-w-0 rounded-xl border bg-card text-card-foreground shadow-panel", className)} {...props} />;
 }
 
 export function PanelHeader({

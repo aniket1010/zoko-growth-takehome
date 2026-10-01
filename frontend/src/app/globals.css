@@ -75,6 +75,10 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
+  /* Elevation (see DESIGN.md): shadow-panel for boxes, shadow-control for fields and buttons on the canvas */
+  --shadow-panel: var(--elevation-panel);
+  --shadow-control: var(--elevation-control);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -88,58 +92,58 @@
   color-scheme: light;
   --radius: 0.5rem;
 
-  /* Surfaces */
-  --background: #fafaf9;
-  --card: #ffffff; /* panels */
-  --card-foreground: #222525;
-  --popover: #ffffff;
-  --popover-foreground: #222525;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #222525;
-  --sidebar-accent: #f3f3f1;
-  --sidebar-accent-foreground: #222525;
+  /* Surfaces: a warm grey canvas, panels one step lighter (not stark white). */
+  --background: #ecebe7;
+  --card: #fafaf8; /* panels */
+  --card-foreground: #1f2222;
+  --popover: #fcfcfb;
+  --popover-foreground: #1f2222;
+  --sidebar: #f5f4f1;
+  --sidebar-foreground: #1f2222;
+  --sidebar-accent: #e6e4de; /* hover and active nav row */
+  --sidebar-accent-foreground: #1f2222;
   --sidebar-primary: #ff6937;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-border: #e3e3e3;
+  --sidebar-border: #d9d7d0;
   --sidebar-ring: #ff6937;
 
   /* Text */
-  --foreground: #222525; /* zoko.io --gray-1 */
-  --muted-foreground: #62636b; /* zoko.io --gray-2 */
+  --foreground: #1f2222; /* zoko.io --gray-1, a touch deeper */
+  --muted-foreground: #575960; /* zoko.io --gray-2, darkened to keep AA on the grey fills */
 
   /* Lines and fills */
-  --border: #e6e6e6;
-  --input: #e2e2e2;
+  --border: #d9d7d0; /* decorative panel and divider lines */
+  --input: #8a8881; /* form field outlines, 3:1 against the panel */
   --ring: #ff6937;
-  --muted: #f3f3f3;
-  --secondary: #f1f1f1;
-  --secondary-foreground: #222525;
-  --accent: #f1f1f1;
-  --accent-foreground: #222525;
+  --muted: #e9e7e2;
+  --secondary: #e6e4df;
+  --secondary-foreground: #1f2222;
+  --accent: #e6e4df;
+  --accent-foreground: #1f2222;
 
   /* Brand */
   --brand: #ff6937; /* Zoko orange: app buttons, brief PDF, zoko.io */
-  --brand-ink: #bf441c; /* zoko.io --accent #cc4a1f, one step darker so orange text passes AA on the orange tint */
-  --brand-soft: #fff1eb;
-  --brand-line: #f7dfd7; /* zoko.io --secondary, Zoko's disabled "Create" */
-  --primary: #bf441c;
+  --brand-ink: #b03e18; /* zoko.io --accent #cc4a1f, darkened so orange text passes AA on the orange tint */
+  --brand-soft: #fce8de;
+  --brand-line: #f0cbbb; /* zoko.io --secondary, one step deeper so it shows on the tint */
+  --primary: #b03e18;
   --primary-foreground: #ffffff;
 
   /* Status */
-  --good: #1a7547;
-  --good-soft: #e7f5ed;
-  --warning: #a35f00;
-  --warning-soft: #fff4d6;
-  --bad: #c42b2b;
-  --bad-soft: #fdeceb;
-  --destructive: #c42b2b;
+  --good: #17683f;
+  --good-soft: #dff0e6;
+  --warning: #8a5100;
+  --warning-soft: #f9ecc8;
+  --bad: #b42525;
+  --bad-soft: #f9e1df;
+  --destructive: #b42525;
 
   /* Chat */
-  --bubble-customer: #ffffff;
-  --bubble-agent: #fff1eb;
-  --bubble-bot: #f1f3f6;
-  --bot-ink: #52647b;
-  --tick-seen: #2f80ed;
+  --bubble-customer: #fdfdfc;
+  --bubble-agent: #fce8de;
+  --bubble-bot: #e6eaef;
+  --bot-ink: #475a70;
+  --tick-seen: #1d6fd8;
 
   /* Chart series: customer / bot / agent, in stacking order */
   --series-customer: #354b44;
@@ -150,16 +154,20 @@
   --chart-2: #068466;
   --chart-3: #6e56cf;
   --chart-4: #f5b400;
-  --chart-5: #62636b;
+  --chart-5: #575960;
+
+  /* Elevation: every box on the canvas gets the same soft two-layer lift. */
+  --elevation-panel: 0 1px 2px 0 rgb(41 37 32 / 0.06), 0 3px 8px -2px rgb(41 37 32 / 0.08);
+  --elevation-control: 0 1px 2px 0 rgb(41 37 32 / 0.07);
 }
 
 .dark {
   color-scheme: dark;
 
   --background: #121214;
-  --card: #1b1b1e;
+  --card: #1d1d21; /* one step lifted so panels read above the canvas */
   --card-foreground: #ececee;
-  --popover: #1f1f23;
+  --popover: #222226;
   --popover-foreground: #ececee;
   --sidebar: #17171a;
   --sidebar-foreground: #ececee;
@@ -212,6 +220,10 @@
   --chart-3: #8471e0;
   --chart-4: #c98500;
   --chart-5: #a1a1aa;
+
+  /* Shadows barely show on near-black, so add a faint top highlight to the edge. */
+  --elevation-panel: 0 1px 2px 0 rgb(0 0 0 / 0.45), 0 3px 10px -2px rgb(0 0 0 / 0.4), inset 0 1px 0 0 rgb(255 255 255 / 0.035);
+  --elevation-control: 0 1px 2px 0 rgb(0 0 0 / 0.4);
 }
 
 @layer base {

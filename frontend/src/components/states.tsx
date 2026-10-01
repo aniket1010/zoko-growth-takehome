@@ -25,7 +25,7 @@ export function EmptyState({
 /** The backend could not be reached. Render wakes up slowly on the free tier, so say so. */
 export function ErrorState({ error, className }: { error: string; className?: string }) {
   return (
-    <div className={cn("flex items-start gap-3 rounded-xl border bg-card p-6", className)} role="alert">
+    <div className={cn("flex items-start gap-3 rounded-xl border bg-card p-6 shadow-panel", className)} role="alert">
       <ServerCrash className="mt-0.5 size-4 shrink-0 text-bad" aria-hidden />
       <div className="min-w-0 space-y-2">
         <p className="text-sm font-medium text-bad">The support backend is not responding</p>

@@ -40,7 +40,7 @@ export default async function Conversations({ searchParams }: PageProps<"/conver
           <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground tabular-nums">{key === "waiting" && attention.status === "rejected" ? "—" : filterConversations(matches, key, waitingIds).length}</span>
         </Link>)}
       </nav>
-      <form action="/conversations" role="search" className="flex min-w-0 items-center gap-2 rounded-lg border bg-card px-3 focus-within:ring-2 focus-within:ring-ring/40 xl:w-80">
+      <form action="/conversations" role="search" className="flex min-w-0 items-center gap-2 rounded-lg border border-input bg-card px-3 shadow-control focus-within:ring-2 focus-within:ring-ring/40 xl:w-80">
         <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         {filter !== "all" ? <input type="hidden" name="status" value={filter} /> : null}
         <label className="sr-only" htmlFor="conversation-search">Search conversations</label>
