@@ -1,5 +1,6 @@
 import { Page } from "@/components/panel";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SlowLoadHint } from "@/components/slow-load-hint";
 
 /** Shown while the server fetches. The backend can take a while to wake up on Render's free tier. */
 export default function Loading() {
@@ -20,7 +21,7 @@ export default function Loading() {
         <Skeleton className="h-56 rounded-xl lg:col-span-3" />
         <Skeleton className="h-56 rounded-xl lg:col-span-2" />
       </div>
-      <p className="text-center text-xs text-muted-foreground">Fetching the latest numbers. The first load after a quiet spell can take up to a minute.</p>
+      <SlowLoadHint />
     </Page>
   );
 }

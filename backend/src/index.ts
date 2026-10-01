@@ -3,12 +3,14 @@ import { env } from "./config/env.js";
 import { startAssignmentPoller, syncAgents } from "./zoko/sync.js";
 import { scheduleSyncPosthog } from "./posthog/sync.js";
 import { shutdownPosthog } from "./posthog/client.js";
+import { startKeepAwake } from "./lib/keep-awake.js";
 
 const app = createApp();
 
 const server = app.listen(env.PORT, () => {
   console.log(`backend listening on :${env.PORT}`);
   scheduleSyncPosthog(10_000); // backfill anything not yet in PostHog
+  startKeepAwake();
   if (env.ZOKO_API_KEY) {
     syncAgents()
       .then((n) => console.log(`synced ${n} agents`))

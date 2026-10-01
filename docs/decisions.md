@@ -31,3 +31,6 @@ Free, persistent, serverless Postgres on a personal account. The app uses the po
 - **CSAT:** asked = the `zoko_csat_test_v0` template was sent; received = a button reply whose `context.template_id` is that template; the rating is `context.postback`.
 - **Scope:** all store activity since the webhook went live, including other candidates' test chats.
 Gave up: conversations that began before the webhook went live start at the first message we saw, so their times are understated.
+
+## 008 Keep the free Render service awake
+Render's free plan stops the service after 15 minutes without inbound traffic, and waking takes up to a minute. That slowed the first dashboard load and risked Zoko's 5-second webhook timeout. The backend pings its own public /health (Render's RENDER_EXTERNAL_URL) every 10 minutes, which counts as inbound traffic. One always-on free service fits in the 750 free hours a month. The dashboard's loading screen says "Loading…" and only mentions the wake-up after 4 seconds.
