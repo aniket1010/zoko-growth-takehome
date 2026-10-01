@@ -80,11 +80,13 @@ export async function processRawEvent(rawId: number): Promise<void> {
       // Anything else (AI assistant, automations) is a bot. As a fallback for
       // agent replies we cannot match by email, use the assignee at send time.
       let agentId: string | null = null;
-      const agentEmail = evt.agentEmail ?? null;
+      // Only a real email address identifies a human agent. Other senders put labels
+      // here (e.g. "meta-payment-probe" on broadcast templates); treat those as automation.
+      const agentEmail = evt.agentEmail && evt.agentEmail.includes("@") ? evt.agentEmail : null;
       // appType seen on store messages: "webapp" (agent in Zoko's app, has agentEmail),
       // "direct_api" (sent through the API, e.g. from this dashboard's send box: a human,
       // credited to the chat's assignee) and "enigma"/none (the store's AI assistant).
-      const sentViaApi = evt.appType === "direct_api";
+      const sentViaApi = evt.appType === "direct_api" && !evt.agentEmail;
       const senderType =
         evt.direction === "FROM_CUSTOMER" ? "customer" : agentEmail || sentViaApi ? "agent" : "bot";
       if (agentEmail) agentId = await agentIdByEmail(agentEmail);
