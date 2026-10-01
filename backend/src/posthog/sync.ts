@@ -113,11 +113,15 @@ export async function buildEvents(): Promise<Outgoing[]> {
  * closing. A strict funnel on the raw csat_* events would drop those conversations,
  * and an any-order funnel mislabels steps. So:
  *   conversation_surveyed: the conversation is closed AND a survey was sent;
- *                          timestamp = the later of the two (+1 s after the close)
+ *                          timestamp = the later of the survey and close + 1 min
  *   conversation_rated:    a rating came back for it; timestamp = the later of the
- *                          rating and the surveyed stage (+1 s)
+ *                          rating and the surveyed stage + 1 min
+ * The 1-minute gap matters: PostHog corrects event times for the sender's clock skew,
+ * and a 1-second gap was flipped by a few seconds of skew (30 Sep 2026).
  * The raw csat_asked / csat_received events keep their real times.
  */
+const STAGE_GAP_MS = 60_000;
+
 function funnelStageEvents(events: Outgoing[]): Outgoing[] {
   type Conv = { close?: Date; ask?: Date; recv?: Date; rating?: unknown; customerId?: unknown };
   const byConv = new Map<string, Conv>();
@@ -136,15 +140,16 @@ function funnelStageEvents(events: Outgoing[]): Outgoing[] {
   const out: Outgoing[] = [];
   for (const [id, c] of byConv) {
     if (!c.close || !c.ask) continue;
-    const surveyedAt = later(c.ask, new Date(c.close.getTime() + 1000));
+    const surveyedAt = later(c.ask, new Date(c.close.getTime() + STAGE_GAP_MS));
     const base = { conversation_id: id, customer_id: c.customerId, survey_sent_at: c.ask.toISOString(), survey_before_close: c.ask < c.close };
-    out.push({ key: `conv_surveyed:${id}`, event: "conversation_surveyed", distinctId: id, timestamp: surveyedAt, properties: base });
+    // "v2" keys: v1 stage events (1 s gap) were already sent and some landed out of order.
+    out.push({ key: `conv_surveyed_v2:${id}`, event: "conversation_surveyed", distinctId: id, timestamp: surveyedAt, properties: base });
     if (c.recv) {
       out.push({
-        key: `conv_rated:${id}`,
+        key: `conv_rated_v2:${id}`,
         event: "conversation_rated",
         distinctId: id,
-        timestamp: later(c.recv, new Date(surveyedAt.getTime() + 1000)),
+        timestamp: later(c.recv, new Date(surveyedAt.getTime() + STAGE_GAP_MS)),
         properties: { ...base, rating: c.rating, rated_at: c.recv.toISOString() },
       });
     }
