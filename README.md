@@ -90,10 +90,10 @@ The backend refuses to send to any number not in `SEND_ALLOWLIST`, and an empty 
 | Brief asks for | Where |
 |---|---|
 | PostHog tracking in the Task 1 project | The backend sends support events; the frontend records pageviews and dashboard sends |
-| Funnel: conversations, closed, CSAT asked, CSAT received | "Support funnel" insight, strict order |
-| Day-wise messages graph using SQL | "Messages per day (SQL)" insight, HogQL |
+| Funnel: conversations, closed, CSAT asked, CSAT received | "Support funnel" insight |
+| Day-wise messages graph using SQL | "Messages per day" insight, HogQL |
 | Each agent as a group, with messages sent and conversations handled | Group type `agent`, updated on every sync |
-| Agents with more than 10 messages sent, without SQL | Trends insight counting unique agent groups |
+| Agents with more than 10 messages sent, without SQL | "Agents with >10 messages" trends insight on agent groups |
 
 - **Events come from our database, not from Zoko directly.** "Conversation started" and "closed" only exist in our conversation model, and deriving them backfilled the test data with its original timestamps.
 - **Each event is sent once.** A `posthog_sent` table records what PostHog already has, so a sync can run any number of times.

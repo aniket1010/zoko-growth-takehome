@@ -27,24 +27,24 @@ Live in PostHog (project 637550, US cloud):
 
 - Dashboard: https://us.posthog.com/project/637550/dashboard/2157097
 - Funnel: https://us.posthog.com/project/637550/insights/BSeJQ14G
-- Messages per day (SQL): https://us.posthog.com/project/637550/insights/fQt94e4w
-- Agents with more than 10 messages sent: https://us.posthog.com/project/637550/insights/VdGOEZF5
+- Messages per day: https://us.posthog.com/project/637550/insights/fQt94e4w
+- Agents with >10 messages: https://us.posthog.com/project/637550/insights/VdGOEZF5
 
 
-Created by `node posthog/setup-insights.mjs` (see the top of the file for the environment variables). It also builds one dashboard holding all three.
+Created by `node posthog/setup-insights.mjs` (see the top of the file for the environment variables). It builds the "Support analytics" dashboard with three insights: **Support funnel** (steps Conversations, Closed, CSAT sent, CSAT received), **Messages per day** and **Agents with >10 messages**. Labels are kept short; the definitions live here.
 
 1. **Funnel:** conversation started, then chat closed, then CSAT survey sent, then CSAT rating received. It counts how far each conversation got. Agents often send the survey just before closing, so steps 3 and 4 use the per-conversation stage events above rather than the raw survey and rating events. A strict funnel on the raw events dropped those conversations; an any-order funnel counted an open chat as "closed".
 2. **Messages per day, using SQL (HogQL),** by day in IST:
    ```sql
-   SELECT toDate(toTimeZone(timestamp, 'Asia/Kolkata')) AS day,
-          count() AS total_messages,
-          countIf(event = 'message_received') AS from_customers,
-          countIf(event = 'message_sent') AS from_store
+   SELECT toDate(toTimeZone(timestamp, 'Asia/Kolkata')) AS `Day`,
+          count() AS `Total`,
+          countIf(event = 'message_received') AS `Customers`,
+          countIf(event = 'message_sent') AS `Store`
    FROM events
    WHERE event IN ('message_received', 'message_sent')
      AND timestamp >= now() - INTERVAL 30 DAY
-   GROUP BY day
-   ORDER BY day
+   GROUP BY `Day`
+   ORDER BY `Day`
    ```
 3. **Agents with more than 10 messages sent, without SQL:** a trends insight on `message_sent`, counting unique `agent` groups per day, filtered to groups whose `messages_sent` property is greater than 10.
 

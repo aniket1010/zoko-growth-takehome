@@ -41,20 +41,19 @@ const LAST_30_DAYS = { date_from: "-30d" };
 
 const insights = [
   {
-    name: "Support funnel: conversation → closed → CSAT asked → CSAT received",
-    legacyNames: ["Support funnel: conversations → closed → CSAT asked → CSAT received"],
-    description:
-      "How far Zoko support conversations get. One conversation = one PostHog person. A conversation counts at a step once it has reached it: started by a customer, closed (by an agent or auto-close), sent the CSAT survey (zoko_csat_test_v0, before or after the close), and rated by the customer. Steps 3 and 4 use one stage event per conversation, so a survey sent just before closing still counts.",
+    name: "Support funnel",
+    legacyNames: ["Support funnel: conversation → closed → CSAT asked → CSAT received", "Support funnel: conversations → closed → CSAT asked → CSAT received"],
+    description: "",
 
     query: {
       kind: "InsightVizNode",
       source: {
         kind: "FunnelsQuery",
         series: [
-          { kind: "EventsNode", event: "conversation_started", name: "conversation_started", custom_name: "Conversation started" },
-          { kind: "EventsNode", event: "conversation_closed", name: "conversation_closed", custom_name: "Chat closed" },
-          { kind: "EventsNode", event: "conversation_surveyed", name: "conversation_surveyed", custom_name: "CSAT survey sent" },
-          { kind: "EventsNode", event: "conversation_rated", name: "conversation_rated", custom_name: "CSAT rating received" },
+          { kind: "EventsNode", event: "conversation_started", name: "conversation_started", custom_name: "Conversations" },
+          { kind: "EventsNode", event: "conversation_closed", name: "conversation_closed", custom_name: "Closed" },
+          { kind: "EventsNode", event: "conversation_surveyed", name: "conversation_surveyed", custom_name: "CSAT sent" },
+          { kind: "EventsNode", event: "conversation_rated", name: "conversation_rated", custom_name: "CSAT received" },
         ],
         funnelsFilter: { funnelVizType: "steps", funnelOrderType: "ordered", funnelWindowInterval: 14, funnelWindowIntervalUnit: "day" },
         dateRange: LAST_30_DAYS,
@@ -63,38 +62,36 @@ const insights = [
     },
   },
   {
-    name: "Messages per day (SQL)",
-    legacyNames: [],
-    description:
-      "Daily WhatsApp message volume in the Zoko test store, written in SQL (HogQL). Customer messages vs store messages (human agents and the AI assistant), by day in IST.",
+    name: "Messages per day",
+    legacyNames: ["Messages per day (SQL)"],
+    description: "",
     query: {
       kind: "DataVisualizationNode",
       source: {
         kind: "HogQLQuery",
         query: [
-          "SELECT toDate(toTimeZone(timestamp, 'Asia/Kolkata')) AS day,",
-          "       count() AS total_messages,",
-          "       countIf(event = 'message_received') AS from_customers,",
-          "       countIf(event = 'message_sent') AS from_store",
+          "SELECT toDate(toTimeZone(timestamp, 'Asia/Kolkata')) AS `Day`,",
+          "       count() AS `Total`,",
+          "       countIf(event = 'message_received') AS `Customers`,",
+          "       countIf(event = 'message_sent') AS `Store`",
           "FROM events",
           "WHERE event IN ('message_received', 'message_sent')",
           "  AND timestamp >= now() - INTERVAL 30 DAY",
-          "GROUP BY day",
-          "ORDER BY day",
+          "GROUP BY `Day`",
+          "ORDER BY `Day`",
         ].join("\n"),
       },
       display: "ActionsLineGraph",
       chartSettings: {
-        xAxis: { column: "day" },
-        yAxis: [{ column: "total_messages" }, { column: "from_customers" }, { column: "from_store" }],
+        xAxis: { column: "Day" },
+        yAxis: [{ column: "Total" }, { column: "Customers" }, { column: "Store" }],
       },
     },
   },
   {
-    name: "Agents with more than 10 messages sent",
-    legacyNames: [],
-    description:
-      "No SQL. Each Zoko agent is a PostHog group (type: agent). Counts agents active each day whose messages_sent group property is above 10. messages_sent counts human replies only; AI assistant and broadcast messages are excluded.",
+    name: "Agents with >10 messages",
+    legacyNames: ["Agents with 10+ messages sent", "Agents with more than 10 messages sent"],
+    description: "",
     query: {
       kind: "InsightVizNode",
       source: {
@@ -104,7 +101,7 @@ const insights = [
             kind: "EventsNode",
             event: "message_sent",
             name: "message_sent",
-            custom_name: "Agents with more than 10 messages sent",
+            custom_name: "Agents",
             math: "unique_group",
             math_group_type_index: AGENT,
             properties: [{ key: "messages_sent", value: 10, operator: "gt", type: "group", group_type_index: AGENT }],
@@ -121,10 +118,9 @@ const insights = [
 
 // One dashboard holding all of them. Matched by current or earlier name, so renames update in place.
 const DASHBOARD = {
-  name: "Task 2: Zoko support analytics",
-  legacyNames: ["Zoko support intelligence (Task 2)"],
-  description:
-    "PostHog view of the Zoko test store's support data, sent by the Support Intelligence backend: conversation funnel, daily messages (SQL) and agents with more than 10 messages sent (agent groups).",
+  name: "Support analytics",
+  legacyNames: ["Task 2: Zoko support analytics", "Zoko support intelligence (Task 2)"],
+  description: "",
 };
 const dashboards = await api(`/dashboards/?limit=200`);
 const dashNames = [DASHBOARD.name, ...DASHBOARD.legacyNames];
