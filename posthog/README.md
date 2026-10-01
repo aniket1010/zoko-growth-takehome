@@ -21,6 +21,14 @@ The backend derives events from the database and sends them to PostHog. It only 
 
 ## The insights
 
+Live in PostHog (project 637550, US cloud):
+
+- Dashboard: https://us.posthog.com/project/637550/dashboard/2157097
+- Funnel: https://us.posthog.com/project/637550/insights/BSeJQ14G
+- Messages per day (SQL): https://us.posthog.com/project/637550/insights/fQt94e4w
+- Agents with more than 10 messages sent: https://us.posthog.com/project/637550/insights/VdGOEZF5
+
+
 Created by `node posthog/setup-insights.mjs` (see the top of the file for the environment variables). It also builds one dashboard holding all three.
 
 1. **Funnel:** conversations, then closed, then CSAT asked, then CSAT received. Steps are counted in any order within 14 days, because agents often send the survey just before closing.
