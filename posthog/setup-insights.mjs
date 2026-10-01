@@ -37,7 +37,20 @@ if (!agentType) {
 }
 const AGENT = agentType.group_type_index;
 
-const LAST_30_DAYS = { date_from: "-30d" };
+const LAST_7_DAYS = { date_from: "-7d" };
+
+// Zoko palette for funnels and trends (PostHog colours those from a theme, not hex codes).
+const ZOKO_COLORS = ["#ff6937", "#35416b", "#8a8f98", "#068466", "#6e56cf", "#b64b02", "#0476fb", "#e4a604", "#ce0e74", "#41cbc4"];
+const themes = await fetch(`${HOST}/api/environments/${PROJECT}/data_color_themes/`, { headers: { authorization: `Bearer ${KEY}` } }).then((r) => r.json());
+let theme = (Array.isArray(themes) ? themes : themes.results ?? []).find((t) => t.name === "Zoko");
+if (!theme) {
+  theme = await fetch(`${HOST}/api/environments/${PROJECT}/data_color_themes/`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json" },
+    body: JSON.stringify({ name: "Zoko", colors: ZOKO_COLORS }),
+  }).then((r) => r.json());
+}
+const THEME = theme.id;
 
 const insights = [
   {
@@ -56,8 +69,9 @@ const insights = [
           { kind: "EventsNode", event: "conversation_rated", name: "conversation_rated", custom_name: "CSAT received" },
         ],
         funnelsFilter: { funnelVizType: "steps", funnelOrderType: "ordered", funnelWindowInterval: 14, funnelWindowIntervalUnit: "day" },
-        dateRange: LAST_30_DAYS,
+        dateRange: LAST_7_DAYS,
         filterTestAccounts: false,
+        dataColorTheme: THEME,
       },
     },
   },
@@ -76,15 +90,22 @@ const insights = [
           "       countIf(event = 'message_sent') AS `Store`",
           "FROM events",
           "WHERE event IN ('message_received', 'message_sent')",
-          "  AND timestamp >= now() - INTERVAL 30 DAY",
+          "  AND timestamp >= now() - INTERVAL 7 DAY",
           "GROUP BY `Day`",
           "ORDER BY `Day`",
         ].join("\n"),
       },
-      display: "ActionsLineGraph",
+      // Stacked bars: each day's bar height is the total, split into customer and store messages.
+      display: "ActionsStackedBar",
       chartSettings: {
         xAxis: { column: "Day" },
-        yAxis: [{ column: "Total" }, { column: "Customers" }, { column: "Store" }],
+        yAxis: [
+          { column: "Customers", settings: { display: { color: "#ff6937", label: "Customers", displayType: "bar" } } },
+          { column: "Store", settings: { display: { color: "#35416b", label: "Store", displayType: "bar" } } },
+        ],
+        showLegend: true,
+        legendPosition: "bottom",
+        leftYAxisSettings: { startAtZero: true },
       },
     },
   },
@@ -108,9 +129,10 @@ const insights = [
           },
         ],
         interval: "day",
-        dateRange: LAST_30_DAYS,
-        trendsFilter: { display: "ActionsBar" },
+        dateRange: LAST_7_DAYS,
+        trendsFilter: { display: "ActionsBar", showLegend: false, showValuesOnSeries: true },
         filterTestAccounts: false,
+        dataColorTheme: THEME,
       },
     },
   },
@@ -125,7 +147,7 @@ const DASHBOARD = {
 const dashboards = await api(`/dashboards/?limit=200`);
 const dashNames = [DASHBOARD.name, ...DASHBOARD.legacyNames];
 let dash = (dashboards.results ?? []).find((d) => dashNames.includes(d.name) && !d.deleted);
-const dashBody = JSON.stringify({ name: DASHBOARD.name, description: DASHBOARD.description });
+const dashBody = JSON.stringify({ name: DASHBOARD.name, description: DASHBOARD.description, filters: { date_from: "-7d" } });
 dash = dash ? await api(`/dashboards/${dash.id}/`, { method: "PATCH", body: dashBody }) : await api("/dashboards/", { method: "POST", body: dashBody });
 
 const existing = await api(`/insights/?limit=200&saved=true`);
@@ -138,4 +160,19 @@ for (const { legacyNames, ...ins } of insights) {
     : await api("/insights/", { method: "POST", body });
   console.log(`${found ? "updated" : "created"}: ${ins.name}\n  ${HOST}/project/${PROJECT}/insights/${saved.short_id}`);
 }
+// Layout (12-column grid): funnel full width on top, the other two side by side below.
+const LAYOUT = {
+  "Support funnel": { x: 0, y: 0, w: 12, h: 6 },
+  "Messages per day": { x: 0, y: 6, w: 6, h: 6 },
+  "Agents with >10 messages": { x: 6, y: 6, w: 6, h: 6 },
+};
+const full = await api(`/dashboards/${dash.id}/`);
+const tiles = (full.tiles ?? [])
+  .filter((t) => t.insight && LAYOUT[t.insight.name])
+  .map((t) => {
+    const sm = LAYOUT[t.insight.name];
+    return { id: t.id, layouts: { sm: { ...sm, minW: 3, minH: 4 }, xs: { x: 0, y: sm.y, w: 1, h: sm.h, minW: 1, minH: 4 } } };
+  });
+await api(`/dashboards/${dash.id}/`, { method: "PATCH", body: JSON.stringify({ tiles }) });
+
 console.log(`dashboard: ${HOST}/project/${PROJECT}/dashboard/${dash.id}`);

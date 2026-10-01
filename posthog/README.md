@@ -33,6 +33,8 @@ Live in PostHog (project 637550, US cloud):
 
 Created by `node posthog/setup-insights.mjs` (see the top of the file for the environment variables). It builds the "Support analytics" dashboard with three insights: **Support funnel** (steps Conversations, Closed, CSAT sent, CSAT received), **Messages per day** and **Agents with >10 messages**. Labels are kept short; the definitions live here.
 
+Presentation: last 7 days everywhere, funnel full width on top with the other two side by side, a "Zoko" colour theme (Zoko orange first) for the funnel and agents charts, messages per day as stacked bars (customers in Zoko orange, store in navy), and no legend on the single-series agents chart.
+
 1. **Funnel:** conversation started, then chat closed, then CSAT survey sent, then CSAT rating received. It counts how far each conversation got. Agents often send the survey just before closing, so steps 3 and 4 use the per-conversation stage events above rather than the raw survey and rating events. A strict funnel on the raw events dropped those conversations; an any-order funnel counted an open chat as "closed".
 2. **Messages per day, using SQL (HogQL),** by day in IST:
    ```sql
@@ -42,7 +44,7 @@ Created by `node posthog/setup-insights.mjs` (see the top of the file for the en
           countIf(event = 'message_sent') AS `Store`
    FROM events
    WHERE event IN ('message_received', 'message_sent')
-     AND timestamp >= now() - INTERVAL 30 DAY
+     AND timestamp >= now() - INTERVAL 7 DAY
    GROUP BY `Day`
    ORDER BY `Day`
    ```
