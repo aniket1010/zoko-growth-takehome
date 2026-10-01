@@ -44,7 +44,8 @@ const insights = [
     name: "Support funnel: conversation → closed → CSAT asked → CSAT received",
     legacyNames: ["Support funnel: conversations → closed → CSAT asked → CSAT received"],
     description:
-      "How far Zoko support conversations get. One conversation = one PostHog person. Steps must happen in this order within 14 days: a customer starts a conversation, the chat is closed (by an agent or auto-close), the agent sends the CSAT survey (zoko_csat_test_v0), and the customer taps a rating.",
+      "How far Zoko support conversations get. One conversation = one PostHog person. A conversation counts at a step once it has reached it: started by a customer, closed (by an agent or auto-close), sent the CSAT survey (zoko_csat_test_v0, before or after the close), and rated by the customer. Steps 3 and 4 use one stage event per conversation, so a survey sent just before closing still counts.",
+
     query: {
       kind: "InsightVizNode",
       source: {
@@ -52,8 +53,8 @@ const insights = [
         series: [
           { kind: "EventsNode", event: "conversation_started", name: "conversation_started", custom_name: "Conversation started" },
           { kind: "EventsNode", event: "conversation_closed", name: "conversation_closed", custom_name: "Chat closed" },
-          { kind: "EventsNode", event: "csat_asked", name: "csat_asked", custom_name: "CSAT survey sent" },
-          { kind: "EventsNode", event: "csat_received", name: "csat_received", custom_name: "CSAT rating received" },
+          { kind: "EventsNode", event: "conversation_surveyed", name: "conversation_surveyed", custom_name: "CSAT survey sent" },
+          { kind: "EventsNode", event: "conversation_rated", name: "conversation_rated", custom_name: "CSAT rating received" },
         ],
         funnelsFilter: { funnelVizType: "steps", funnelOrderType: "ordered", funnelWindowInterval: 14, funnelWindowIntervalUnit: "day" },
         dateRange: LAST_30_DAYS,

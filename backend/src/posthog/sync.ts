@@ -101,6 +101,54 @@ export async function buildEvents(): Promise<Outgoing[]> {
       out.push({ key: `csat_received:${m.id}`, event: "csat_received", distinctId: id, timestamp: ts(m.sent_at), properties: { ...props, rating } });
     }
   }
+
+  out.push(...funnelStageEvents(out));
+  return out;
+}
+
+/**
+ * Funnel stage events: one per conversation, at the moment the conversation reached
+ * the stage. The brief's funnel (conversations -> closed -> CSAT asked -> CSAT received)
+ * asks how far each conversation got, but agents often send the survey just before
+ * closing. A strict funnel on the raw csat_* events would drop those conversations,
+ * and an any-order funnel mislabels steps. So:
+ *   conversation_surveyed: the conversation is closed AND a survey was sent;
+ *                          timestamp = the later of the two (+1 s after the close)
+ *   conversation_rated:    a rating came back for it; timestamp = the later of the
+ *                          rating and the surveyed stage (+1 s)
+ * The raw csat_asked / csat_received events keep their real times.
+ */
+function funnelStageEvents(events: Outgoing[]): Outgoing[] {
+  type Conv = { close?: Date; ask?: Date; recv?: Date; rating?: unknown; customerId?: unknown };
+  const byConv = new Map<string, Conv>();
+  for (const e of events) {
+    const c = byConv.get(e.distinctId) ?? {};
+    if (e.event === "conversation_started") c.customerId = e.properties.customer_id;
+    if (e.event === "conversation_closed") c.close = e.timestamp;
+    if (e.event === "csat_asked" && (!c.ask || e.timestamp < c.ask)) c.ask = e.timestamp;
+    if (e.event === "csat_received" && (!c.recv || e.timestamp < c.recv)) {
+      c.recv = e.timestamp;
+      c.rating = e.properties.rating;
+    }
+    byConv.set(e.distinctId, c);
+  }
+  const later = (a: Date, b: Date) => new Date(Math.max(a.getTime(), b.getTime()));
+  const out: Outgoing[] = [];
+  for (const [id, c] of byConv) {
+    if (!c.close || !c.ask) continue;
+    const surveyedAt = later(c.ask, new Date(c.close.getTime() + 1000));
+    const base = { conversation_id: id, customer_id: c.customerId, survey_sent_at: c.ask.toISOString(), survey_before_close: c.ask < c.close };
+    out.push({ key: `conv_surveyed:${id}`, event: "conversation_surveyed", distinctId: id, timestamp: surveyedAt, properties: base });
+    if (c.recv) {
+      out.push({
+        key: `conv_rated:${id}`,
+        event: "conversation_rated",
+        distinctId: id,
+        timestamp: later(c.recv, new Date(surveyedAt.getTime() + 1000)),
+        properties: { ...base, rating: c.rating, rated_at: c.recv.toISOString() },
+      });
+    }
+  }
   return out;
 }
 

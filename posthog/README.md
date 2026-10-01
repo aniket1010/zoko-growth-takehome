@@ -10,6 +10,8 @@ The backend derives events from the database and sends them to PostHog. It only 
 | `conversation_closed` | Zoko's `zoko:chat:closed` event | Carries `resolution_seconds`, `frt_seconds`, `closed_without_reply`, `reassigned` |
 | `csat_asked` | The `zoko_csat_test_v0` template is sent | Grouped to the sending agent |
 | `csat_received` | The customer taps a rating on that template | Carries `rating` (1–5) |
+| `conversation_surveyed` | Funnel stage: the conversation is closed and a survey was sent | One per conversation, at the later of the close and the survey |
+| `conversation_rated` | Funnel stage: the surveyed conversation got a rating | One per conversation, after the surveyed stage; carries `rating` |
 | `message_received` | Every customer message | |
 | `message_sent` | Every store message | `sender_type` is `agent` or `bot`; human replies are grouped to their agent |
 
@@ -31,7 +33,7 @@ Live in PostHog (project 637550, US cloud):
 
 Created by `node posthog/setup-insights.mjs` (see the top of the file for the environment variables). It also builds one dashboard holding all three.
 
-1. **Funnel:** conversation started, then chat closed, then CSAT survey sent, then CSAT rating received. Steps must happen in that order within 14 days, so each step means exactly what it says. The CSAT template reads "Your support conversation has been closed", so the survey belongs after the close. A survey sent before closing does not count as step 3.
+1. **Funnel:** conversation started, then chat closed, then CSAT survey sent, then CSAT rating received. It counts how far each conversation got. Agents often send the survey just before closing, so steps 3 and 4 use the per-conversation stage events above rather than the raw survey and rating events. A strict funnel on the raw events dropped those conversations; an any-order funnel counted an open chat as "closed".
 2. **Messages per day, using SQL (HogQL),** by day in IST:
    ```sql
    SELECT toDate(toTimeZone(timestamp, 'Asia/Kolkata')) AS day,
