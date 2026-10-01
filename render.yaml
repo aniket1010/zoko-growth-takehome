@@ -29,3 +29,5 @@ services:
         value: "true"
       - key: POSTHOG_API_KEY
         sync: false
+      - key: POSTHOG_HOST
+        value: https://us.i.posthog.com

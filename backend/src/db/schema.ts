@@ -107,3 +107,12 @@ export const chatEvents = pgTable(
     index("chat_events_customer_at_idx").on(t.customerId, t.eventAt),
   ],
 );
+
+/**
+ * Every event already sent to PostHog, keyed by a stable id (e.g. "msg:<uuid>").
+ * Makes the PostHog sync idempotent: re-running it never double-counts.
+ */
+export const posthogSent = pgTable("posthog_sent", {
+  key: text("key").primaryKey(),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+});

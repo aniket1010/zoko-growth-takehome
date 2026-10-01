@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { LockKeyhole, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,8 @@ export function SendBox({ customerId }: { customerId: string }) {
     setSending(true);
     try {
       const result = await sendMessage(customerId, text.trim());
+      // Usage of the tool itself (no message text is sent to PostHog).
+      posthog.capture(result.ok ? "dashboard_reply_sent" : "dashboard_reply_blocked", { customer_id: customerId });
       if (result.ok) {
         setText("");
         toast.success("Sent. It will appear here when Zoko confirms it.");

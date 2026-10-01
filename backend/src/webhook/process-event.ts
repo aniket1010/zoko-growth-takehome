@@ -3,6 +3,7 @@ import { db } from "../db/client.js";
 import { agents, assignmentSnapshots, chatEvents, customers, messages, rawEvents } from "../db/schema.js";
 import { PARSED_EVENTS, ZokoEvent } from "./zoko-payload.js";
 import { syncAgents } from "../zoko/sync.js";
+import { scheduleSyncPosthog } from "../posthog/sync.js";
 
 /** Parse one stored raw event into the domain tables. Safe to run twice. */
 export async function processRawEvent(rawId: number): Promise<void> {
@@ -133,11 +134,13 @@ export async function processRawEvent(rawId: number): Promise<void> {
         .from(rawEvents)
         .where(and(eq(rawEvents.event, "message:delivery:update"), isNull(rawEvents.processedAt), dsql`${rawEvents.payload}->>'id' = ${evt.id}`));
       await db.update(rawEvents).set({ processedAt: new Date(), error: null }).where(eq(rawEvents.id, rawId));
+      scheduleSyncPosthog();
       for (const e of early) await processRawEvent(e.id);
       return;
     }
 
     await db.update(rawEvents).set({ processedAt: new Date(), error: null }).where(eq(rawEvents.id, rawId));
+    scheduleSyncPosthog();
   } catch (err) {
     // Keep the raw row, record why it failed, and move on. Replay later.
     await db.update(rawEvents).set({ error: String(err) }).where(eq(rawEvents.id, rawId));

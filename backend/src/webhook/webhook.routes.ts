@@ -6,6 +6,7 @@ import { rawEvents } from "../db/schema.js";
 import { env } from "../config/env.js";
 import { dedupeKeyFor } from "./zoko-payload.js";
 import { processRawEvent } from "./process-event.js";
+import { syncPosthog } from "../posthog/sync.js";
 
 export const webhookRouter = Router();
 
@@ -53,6 +54,11 @@ const requireToken: RequestHandler = async (req, res, next) => {
   }
   next();
 };
+
+/** Push any events PostHog has not received yet (idempotent). */
+webhookRouter.post("/zoko/posthog-sync", requireToken, async (_req, res) => {
+  res.json(await syncPosthog());
+});
 
 // Must be registered before "/zoko/:key", or "replay" is treated as a path key.
 /** Re-run parsing for anything that failed or was never processed. */

@@ -22,10 +22,10 @@ conversationsRouter.get("/", async (_req, res) => {
            max(m.sent_at) as last_message_at,
            (select left(text, 80) from messages x where x.customer_id = c.id order by sent_at desc limit 1) as last_message,
            -- Closed if there is a close event and the customer has not written since.
-           -- (Agents sending after a close does not reopen the chat; a customer message does.)
+           -- (Agents sending after a close, or a CSAT rating, does not reopen the chat.)
            coalesce(
              (select max(event_at) from chat_events e where e.customer_id = c.id and e.kind = 'closed')
-               >= coalesce(max(m.sent_at) filter (where m.direction = 'FROM_CUSTOMER'), '-infinity'),
+               >= coalesce(max(m.sent_at) filter (where m.direction = 'FROM_CUSTOMER' and m.reply_to_template is null), '-infinity'),
              false) as is_closed
     from customers c
     join messages m on m.customer_id = c.id

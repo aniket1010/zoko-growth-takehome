@@ -11,6 +11,7 @@ export const metricsRouter = Router();
  *   messages with the same (customer_id, gen) are one conversation, and the close with
  *   index `gen` ends it.
  * - A conversation only counts if it contains a customer message (customer-initiated).
+ *   A CSAT answer does not count: it belongs to the conversation that was rated.
  * - started_at    = first customer message in the conversation
  * - first_reply   = first HUMAN agent message after started_at. Bot replies and the
  *                   CSAT survey template do not count as a response.
@@ -23,7 +24,7 @@ export const metricsRouter = Router();
  *                   conversation (webhook event or poll); credited to the agent it was
  *                   taken from
  */
-const conversations = () => sql`
+export const conversations = () => sql`
   with closes as (
     select customer_id, event_at, agent_id,
            (row_number() over (partition by customer_id order by event_at) - 1)::int as gen
@@ -37,7 +38,9 @@ const conversations = () => sql`
   ),
   base as (
     select customer_id, gen,
-           min(sent_at) filter (where direction = 'FROM_CUSTOMER') as started_at,
+           -- A CSAT rating is an answer to the survey, not a new request, so it never
+           -- starts a conversation (the survey is usually sent after the close).
+           min(sent_at) filter (where direction = 'FROM_CUSTOMER' and reply_to_template is null) as started_at,
            count(*)::int as message_count
     from msgs group by customer_id, gen
   ),
