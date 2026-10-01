@@ -31,11 +31,11 @@ Live in PostHog (project 637550, US cloud):
 
 Created by `node posthog/setup-insights.mjs` (see the top of the file for the environment variables). It also builds one dashboard holding all three.
 
-1. **Funnel:** conversations, then closed, then CSAT asked, then CSAT received. Steps are counted in any order within 14 days, because agents often send the survey just before closing.
-2. **Messages per day, using SQL (HogQL):**
+1. **Funnel:** conversation started, then chat closed, then CSAT survey sent, then CSAT rating received. Steps must happen in that order within 14 days, so each step means exactly what it says. The CSAT template reads "Your support conversation has been closed", so the survey belongs after the close. A survey sent before closing does not count as step 3.
+2. **Messages per day, using SQL (HogQL),** by day in IST:
    ```sql
-   SELECT toDate(timestamp) AS day,
-          count() AS messages,
+   SELECT toDate(toTimeZone(timestamp, 'Asia/Kolkata')) AS day,
+          count() AS total_messages,
           countIf(event = 'message_received') AS from_customers,
           countIf(event = 'message_sent') AS from_store
    FROM events
@@ -44,7 +44,7 @@ Created by `node posthog/setup-insights.mjs` (see the top of the file for the en
    GROUP BY day
    ORDER BY day
    ```
-3. **Agents with more than 10 messages sent, without SQL:** a trends insight on `message_sent`, counting unique `agent` groups, filtered to groups whose `messages_sent` property is greater than 10.
+3. **Agents with more than 10 messages sent, without SQL:** a trends insight on `message_sent`, counting unique `agent` groups per day, filtered to groups whose `messages_sent` property is greater than 10.
 
 ## Definitions used
 
@@ -53,4 +53,4 @@ Created by `node posthog/setup-insights.mjs` (see the top of the file for the en
 
 ## Cost
 
-Everything fits in PostHog's free tier of 1M events a month. The exception is group analytics, which is a paid add-on billed per identified event once enabled. At this volume, a few hundred events, that is fractions of a cent, but it needs billing turned on. Approval was requested from Zoko before enabling it.
+Everything fits in PostHog's free tier of 1M events a month. Group analytics is sold as a paid add-on, but the agent group, its properties and the group insight all work in this project without enabling it, so nothing is billed.

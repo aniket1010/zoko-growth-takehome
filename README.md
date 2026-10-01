@@ -83,6 +83,24 @@ The backend refuses to send to any number not in `SEND_ALLOWLIST`, and an empty 
 - **A reassignment that happens and reverts within 5 minutes** without a webhook event is not seen.
 - **The API has no authentication.** Fine for a test store, but a real deployment would put the dashboard behind a login.
 
+## Task 2: PostHog analytics
+
+- **Dashboard:** https://us.posthog.com/project/637550/dashboard/2157097
+
+| Brief asks for | Where |
+|---|---|
+| PostHog tracking in the Task 1 project | The backend sends support events; the frontend records pageviews and dashboard sends |
+| Funnel: conversations, closed, CSAT asked, CSAT received | "Support funnel" insight, strict order |
+| Day-wise messages graph using SQL | "Messages per day (SQL)" insight, HogQL |
+| Each agent as a group, with messages sent and conversations handled | Group type `agent`, updated on every sync |
+| Agents with more than 10 messages sent, without SQL | Trends insight counting unique agent groups |
+
+- **Events come from our database, not from Zoko directly.** "Conversation started" and "closed" only exist in our conversation model, and deriving them backfilled the test data with its original timestamps.
+- **Each event is sent once.** A `posthog_sent` table records what PostHog already has, so a sync can run any number of times.
+- **Conversations are PostHog persons,** so the funnel counts conversations.
+
+Details, the SQL and the setup script are in [posthog/README.md](posthog/README.md).
+
 ## How data flows
 
 ```

@@ -41,20 +41,21 @@ const LAST_30_DAYS = { date_from: "-30d" };
 
 const insights = [
   {
-    name: "Support funnel: conversations → closed → CSAT asked → CSAT received",
+    name: "Support funnel: conversation → closed → CSAT asked → CSAT received",
+    legacyNames: ["Support funnel: conversations → closed → CSAT asked → CSAT received"],
     description:
-      "Each conversation is one PostHog person (distinct_id = conversation id). Steps are counted in any order within 14 days, because agents often send the CSAT survey just before closing the chat.",
+      "How far Zoko support conversations get. One conversation = one PostHog person. Steps must happen in this order within 14 days: a customer starts a conversation, the chat is closed (by an agent or auto-close), the agent sends the CSAT survey (zoko_csat_test_v0), and the customer taps a rating.",
     query: {
       kind: "InsightVizNode",
       source: {
         kind: "FunnelsQuery",
         series: [
-          { kind: "EventsNode", event: "conversation_started", name: "conversation_started", custom_name: "Conversations" },
-          { kind: "EventsNode", event: "conversation_closed", name: "conversation_closed", custom_name: "Closed" },
-          { kind: "EventsNode", event: "csat_asked", name: "csat_asked", custom_name: "CSAT asked" },
-          { kind: "EventsNode", event: "csat_received", name: "csat_received", custom_name: "CSAT received" },
+          { kind: "EventsNode", event: "conversation_started", name: "conversation_started", custom_name: "Conversation started" },
+          { kind: "EventsNode", event: "conversation_closed", name: "conversation_closed", custom_name: "Chat closed" },
+          { kind: "EventsNode", event: "csat_asked", name: "csat_asked", custom_name: "CSAT survey sent" },
+          { kind: "EventsNode", event: "csat_received", name: "csat_received", custom_name: "CSAT rating received" },
         ],
-        funnelsFilter: { funnelVizType: "steps", funnelOrderType: "unordered", funnelWindowInterval: 14, funnelWindowIntervalUnit: "day" },
+        funnelsFilter: { funnelVizType: "steps", funnelOrderType: "ordered", funnelWindowInterval: 14, funnelWindowIntervalUnit: "day" },
         dateRange: LAST_30_DAYS,
         filterTestAccounts: false,
       },
@@ -62,14 +63,16 @@ const insights = [
   },
   {
     name: "Messages per day (SQL)",
-    description: "Built with SQL (HogQL), as the brief asks. Counts customer and store messages per day.",
+    legacyNames: [],
+    description:
+      "Daily WhatsApp message volume in the Zoko test store, written in SQL (HogQL). Customer messages vs store messages (human agents and the AI assistant), by day in IST.",
     query: {
       kind: "DataVisualizationNode",
       source: {
         kind: "HogQLQuery",
         query: [
-          "SELECT toDate(timestamp) AS day,",
-          "       count() AS messages,",
+          "SELECT toDate(toTimeZone(timestamp, 'Asia/Kolkata')) AS day,",
+          "       count() AS total_messages,",
           "       countIf(event = 'message_received') AS from_customers,",
           "       countIf(event = 'message_sent') AS from_store",
           "FROM events",
@@ -82,14 +85,15 @@ const insights = [
       display: "ActionsLineGraph",
       chartSettings: {
         xAxis: { column: "day" },
-        yAxis: [{ column: "messages" }, { column: "from_customers" }, { column: "from_store" }],
+        yAxis: [{ column: "total_messages" }, { column: "from_customers" }, { column: "from_store" }],
       },
     },
   },
   {
     name: "Agents with more than 10 messages sent",
+    legacyNames: [],
     description:
-      "No SQL: a trends insight counting unique agent groups on message_sent, filtered to agents whose group property messages_sent is greater than 10.",
+      "No SQL. Each Zoko agent is a PostHog group (type: agent). Counts agents active each day whose messages_sent group property is above 10. messages_sent counts human replies only; AI assistant and broadcast messages are excluded.",
     query: {
       kind: "InsightVizNode",
       source: {
@@ -99,7 +103,7 @@ const insights = [
             kind: "EventsNode",
             event: "message_sent",
             name: "message_sent",
-            custom_name: "Agents with >10 messages sent",
+            custom_name: "Agents with more than 10 messages sent",
             math: "unique_group",
             math_group_type_index: AGENT,
             properties: [{ key: "messages_sent", value: 10, operator: "gt", type: "group", group_type_index: AGENT }],
@@ -114,15 +118,23 @@ const insights = [
   },
 ];
 
-// One dashboard holding all of them.
-const DASHBOARD = "Zoko support intelligence (Task 2)";
+// One dashboard holding all of them. Matched by current or earlier name, so renames update in place.
+const DASHBOARD = {
+  name: "Task 2: Zoko support analytics",
+  legacyNames: ["Zoko support intelligence (Task 2)"],
+  description:
+    "PostHog view of the Zoko test store's support data, sent by the Support Intelligence backend: conversation funnel, daily messages (SQL) and agents with more than 10 messages sent (agent groups).",
+};
 const dashboards = await api(`/dashboards/?limit=200`);
-let dash = (dashboards.results ?? []).find((d) => d.name === DASHBOARD && !d.deleted);
-if (!dash) dash = await api("/dashboards/", { method: "POST", body: JSON.stringify({ name: DASHBOARD, description: "Funnel, day-wise messages (SQL) and agents with more than 10 messages (groups)." }) });
+const dashNames = [DASHBOARD.name, ...DASHBOARD.legacyNames];
+let dash = (dashboards.results ?? []).find((d) => dashNames.includes(d.name) && !d.deleted);
+const dashBody = JSON.stringify({ name: DASHBOARD.name, description: DASHBOARD.description });
+dash = dash ? await api(`/dashboards/${dash.id}/`, { method: "PATCH", body: dashBody }) : await api("/dashboards/", { method: "POST", body: dashBody });
 
 const existing = await api(`/insights/?limit=200&saved=true`);
-for (const ins of insights) {
-  const found = (existing.results ?? []).find((i) => i.name === ins.name && !i.deleted);
+for (const { legacyNames, ...ins } of insights) {
+  const names = [ins.name, ...legacyNames];
+  const found = (existing.results ?? []).find((i) => names.includes(i.name) && !i.deleted);
   const body = JSON.stringify({ ...ins, saved: true, dashboards: [dash.id] });
   const saved = found
     ? await api(`/insights/${found.id}/`, { method: "PATCH", body })
