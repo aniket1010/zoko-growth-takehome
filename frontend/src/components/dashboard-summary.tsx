@@ -6,12 +6,7 @@ import type { AttentionRow, ConversationMetric, Overview } from "@/lib/api";
 import { duration, parseTs, phone, time } from "@/lib/format";
 import { responseObservations } from "@/lib/support";
 
-function sample(n: number | undefined, label: string) {
-  return n == null ? "Sample count unavailable" : `${n} ${label}${n === 1 ? "" : "s"}${n > 0 && n < 5 ? " · small sample" : ""}`;
-}
-
-export function MetricSummary({ overview: o, metrics }: { overview: Overview; metrics: ConversationMetric[] | null }) {
-  const samples = metrics ? responseObservations(metrics) : null;
+export function MetricSummary({ overview: o }: { overview: Overview; metrics?: ConversationMetric[] | null }) {
   const parts = [
     { label: "Customer", value: o.customer_messages, color: "bg-series-customer" },
     { label: "Agent", value: o.agent_messages, color: "bg-series-agent" },
@@ -30,15 +25,14 @@ export function MetricSummary({ overview: o, metrics }: { overview: Overview; me
       </div>
     </Panel>
     {[
-      { title: "First response", median: o.median_frt_seconds, average: o.avg_frt_seconds, count: samples?.replied.length, label: "replied conversation", Icon: Timer, note: "Human replies only; AI and surveys excluded." },
-      { title: "Resolution", median: o.median_resolution_seconds, average: o.avg_resolution_seconds, count: samples?.resolved.length, label: "resolved conversation", Icon: CircleCheck, note: "Closed conversations with a human reply." },
-    ].map(({ title, median, average, count, label, Icon, note }) => <Panel key={title} className="flex flex-col p-5 sm:p-6">
+      { title: "First response", median: o.median_frt_seconds, average: o.avg_frt_seconds, Icon: Timer, note: "Human replies only; AI and surveys excluded." },
+      { title: "Resolution", median: o.median_resolution_seconds, average: o.avg_resolution_seconds, Icon: CircleCheck, note: "Closed conversations with a human reply." },
+    ].map(({ title, median, average, Icon, note }) => <Panel key={title} className="flex flex-col p-5 sm:p-6">
       <h2 className="flex items-center justify-between text-sm font-medium">{title}<Icon className="size-4 text-muted-foreground" aria-hidden /></h2>
       <dl className="mt-5 grid grid-cols-2 gap-4">
         <div><dt className="text-xs text-muted-foreground">Median</dt><dd className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{duration(median)}</dd></div>
         <div className="border-l pl-4"><dt className="text-xs text-muted-foreground">Average</dt><dd className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{duration(average)}</dd></div>
       </dl>
-      <p className="mt-3 text-xs text-muted-foreground">{sample(count, label)}</p>
       <p className="mt-auto border-t pt-3 text-xs leading-relaxed text-muted-foreground"><span className="block pt-2">{note}</span></p>
     </Panel>)}
   </section>;
