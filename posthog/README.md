@@ -14,6 +14,7 @@ The backend derives events from the database and sends them to PostHog. It only 
 | `conversation_rated` | Funnel stage: the surveyed conversation got a rating | One per conversation, after the surveyed stage; carries `rating` |
 | `message_received` | Every customer message | |
 | `message_sent` | Every store message | `sender_type` is `agent` or `bot`; human replies are grouped to their agent |
+| `agent_daily_milestone` | An agent sends their 5th human message of an IST day | One per agent per day, grouped to the agent |
 
 - **Persons are conversations.** `distinct_id` is `<customer id>:<conversation start time>`, so funnels count conversations, as the brief asks.
 - **Agents are groups.** Group type `agent`, keyed by Zoko agent id. Each group has `name`, `email`, `messages_sent` and `conversations_handled`, recomputed from the database on every sync.
@@ -28,10 +29,10 @@ Live in PostHog (project 637550, US cloud):
 - Dashboard: https://us.posthog.com/project/637550/dashboard/2157097
 - Funnel: https://us.posthog.com/project/637550/insights/BSeJQ14G
 - Messages per day: https://us.posthog.com/project/637550/insights/fQt94e4w
-- Agents with >10 messages: https://us.posthog.com/project/637550/insights/VdGOEZF5
+- Agents with ≥5 messages a day: https://us.posthog.com/project/637550/insights/VdGOEZF5
 
 
-Created by `node posthog/setup-insights.mjs` (see the top of the file for the environment variables). It builds the "Support analytics" dashboard with three insights: **Support funnel** (steps Conversations, Closed, CSAT sent, CSAT received), **Messages per day** and **Agents with >10 messages**. Labels are kept short; the definitions live here.
+Created by `node posthog/setup-insights.mjs` (see the top of the file for the environment variables). It builds the "Support analytics" dashboard with three insights: **Support funnel** (steps Conversations, Closed, CSAT sent, CSAT received), **Messages per day** and **Agents with ≥5 messages a day**. Labels are kept short; the definitions live here.
 
 Presentation: last 7 days everywhere, funnel full width on top with the other two side by side, a "Zoko" colour theme (Zoko orange first) for the funnel and agents charts, messages per day as stacked bars (customers in Zoko orange, store in navy), and no legend on the single-series agents chart.
 
@@ -48,7 +49,7 @@ Presentation: last 7 days everywhere, funnel full width on top with the other tw
    GROUP BY `Day`
    ORDER BY `Day`
    ```
-3. **Agents with more than 10 messages sent, without SQL:** a trends insight on `message_sent`, counting unique `agent` groups per day, filtered to groups whose `messages_sent` property is greater than 10.
+3. **Agents with at least 5 messages a day, without SQL:** a trends insight counting unique `agent` groups per day on the `agent_daily_milestone` event. The backend emits that event once per agent per IST day, at the moment they send their 5th human message. PostHog's no-SQL trends cannot apply a per-day count threshold to groups, so the threshold is applied in our pipeline. (Changed from the brief's "more than 10 messages sent" at the owner's request.)
 
 ## Definitions used
 

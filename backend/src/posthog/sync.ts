@@ -103,6 +103,42 @@ export async function buildEvents(): Promise<Outgoing[]> {
   }
 
   out.push(...funnelStageEvents(out));
+  out.push(...agentDailyMilestones(msgs));
+  return out;
+}
+
+/**
+ * "Agents with at least N messages in a day", without SQL in PostHog.
+ * PostHog's no-SQL trends can count unique groups but cannot apply a per-day,
+ * per-group count threshold. So the backend emits one agent_daily_milestone event
+ * the moment an agent sends their Nth human message of a day (IST, matching the
+ * dashboard and the PostHog project timezone). A trends insight then counts unique
+ * agent groups with that event per day. Send-once keys make it backfillable.
+ */
+export const DAILY_MESSAGE_THRESHOLD = 5;
+
+function agentDailyMilestones(msgs: readonly Record<string, unknown>[]): Outgoing[] {
+  const istDay = (d: Date) => new Date(d.getTime() + 5.5 * 3600_000).toISOString().slice(0, 10);
+  const counts = new Map<string, number>();
+  const out: Outgoing[] = [];
+  for (const m of msgs) {
+    if (m.sender_type !== "agent" || !m.agent_id) continue;
+    const at = ts(m.sent_at as string | Date);
+    const day = istDay(at);
+    const k = `${m.agent_id}:${day}`;
+    const n = (counts.get(k) ?? 0) + 1;
+    counts.set(k, n);
+    if (n === DAILY_MESSAGE_THRESHOLD) {
+      out.push({
+        key: `agent_daily_${DAILY_MESSAGE_THRESHOLD}:${k}`,
+        event: "agent_daily_milestone",
+        distinctId: `agent:${m.agent_id}`,
+        timestamp: at,
+        properties: { day_ist: day, threshold: DAILY_MESSAGE_THRESHOLD, $process_person_profile: false },
+        groups: { agent: m.agent_id as string },
+      });
+    }
+  }
   return out;
 }
 

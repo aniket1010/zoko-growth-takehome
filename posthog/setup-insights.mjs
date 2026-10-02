@@ -110,22 +110,23 @@ const insights = [
     },
   },
   {
-    name: "Agents with >10 messages",
-    legacyNames: ["Agents with 10+ messages sent", "Agents with more than 10 messages sent"],
+    name: "Agents with ≥5 messages a day",
+    legacyNames: ["Agents with >10 messages", "Agents with 10+ messages sent", "Agents with more than 10 messages sent"],
     description: "",
     query: {
       kind: "InsightVizNode",
       source: {
         kind: "TrendsQuery",
+        // No SQL: the backend emits agent_daily_milestone when an agent sends their 5th
+        // human message of an IST day; this counts unique agent groups with it per day.
         series: [
           {
             kind: "EventsNode",
-            event: "message_sent",
-            name: "message_sent",
+            event: "agent_daily_milestone",
+            name: "agent_daily_milestone",
             custom_name: "Agents",
             math: "unique_group",
             math_group_type_index: AGENT,
-            properties: [{ key: "messages_sent", value: 10, operator: "gt", type: "group", group_type_index: AGENT }],
           },
         ],
         interval: "day",
@@ -164,7 +165,7 @@ for (const { legacyNames, ...ins } of insights) {
 const LAYOUT = {
   "Support funnel": { x: 0, y: 0, w: 12, h: 6 },
   "Messages per day": { x: 0, y: 6, w: 6, h: 6 },
-  "Agents with >10 messages": { x: 6, y: 6, w: 6, h: 6 },
+  "Agents with ≥5 messages a day": { x: 6, y: 6, w: 6, h: 6 },
 };
 const full = await api(`/dashboards/${dash.id}/`);
 const tiles = (full.tiles ?? [])
