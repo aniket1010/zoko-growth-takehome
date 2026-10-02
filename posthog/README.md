@@ -48,7 +48,7 @@ Presentation: last 7 days everywhere, funnel full width on top with the other tw
    GROUP BY `Day`
    ORDER BY `Day`
    ```
-3. **Agents with more than 10 messages sent, without SQL:** a trends insight on `message_sent`, counting unique `agent` groups per day, filtered to groups whose `messages_sent` property is greater than 10.
+3. **Agents with more than 10 messages sent, without SQL:** a trends insight on `message_sent`, counting unique `agent` groups over the period, filtered to groups whose `messages_sent` property is greater than 10. Shown as one total bar, not daily bars: `messages_sent` is each agent's current total, so a per-day series would back-date it (an agent who passed 10 today would also appear on days they had fewer).
 
 ## Definitions used
 
