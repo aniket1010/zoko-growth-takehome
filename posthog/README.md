@@ -26,7 +26,7 @@ The backend derives events from the database and sends them to PostHog. It only 
 
 Live in PostHog (project 637550, US cloud):
 
-- Dashboard: https://us.posthog.com/project/637550/dashboard/2157097
+- Dashboard (public, read-only): https://us.posthog.com/shared/s7ZnW1XWyOoCpwv1D3OeOBhrmRqMAg
 - Funnel: https://us.posthog.com/project/637550/insights/BSeJQ14G
 - Messages per day: https://us.posthog.com/project/637550/insights/fQt94e4w
 - Agents with ≥5 messages a day: https://us.posthog.com/project/637550/insights/VdGOEZF5

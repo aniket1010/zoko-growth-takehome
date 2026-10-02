@@ -1,7 +1,7 @@
 # Zoko Growth Engineer take-home
 
 - **Live app:** https://zoko-growth-takehome.vercel.app
-- **PostHog dashboard:** https://us.posthog.com/project/637550/dashboard/2157097
+- **PostHog dashboard:** https://us.posthog.com/shared/s7ZnW1XWyOoCpwv1D3OeOBhrmRqMAg
 
 Stack: Next.js and shadcn/ui on Vercel, Express and TypeScript on Render, Postgres on Neon.
 
