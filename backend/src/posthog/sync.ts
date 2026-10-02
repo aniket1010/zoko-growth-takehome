@@ -176,7 +176,10 @@ export async function agentGroups() {
            (select count(*) from handled h where h.agent_id = a.id)::int as conversations_handled
     from agents a
     where exists (select 1 from messages m where m.agent_id = a.id and m.sender_type = 'agent')
-       or exists (select 1 from handled h where h.agent_id = a.id)`;
+       or exists (select 1 from handled h where h.agent_id = a.id)
+       -- Also every agent already sent to PostHog, so a count that drops (e.g. after a
+       -- reclassification) is corrected there instead of staying stale.
+       or exists (select 1 from posthog_sent ps where ps.key like 'group:' || a.id || ':%')`;
 }
 
 async function alreadySent(keys: string[]): Promise<Set<string>> {
