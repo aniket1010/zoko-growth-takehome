@@ -101,6 +101,16 @@ The backend refuses to send to any number not in `SEND_ALLOWLIST`, and an empty 
 
 Details, the SQL and the setup script are in [posthog/README.md](posthog/README.md).
 
+## Task 3: Product teardown
+
+Five improvements, each with what, why and expected impact, in [teardown/TEARDOWN.md](teardown/TEARDOWN.md):
+
+1. **Fix the placeholder copy** in the Add webhook form.
+2. **Document every webhook event and payload field.**
+3. **Sign webhook deliveries.**
+4. **Add a message history API and incremental sync.**
+5. **Built-in CSAT on close,** plus support analytics that exclude the AI assistant.
+
 ## How data flows
 
 ```
