@@ -130,9 +130,7 @@ const insights = [
         ],
         interval: "day",
         dateRange: LAST_7_DAYS,
-        // One total for the period, not daily bars: the group property is the agent's
-        // current total, so a per-day series would wrongly back-date it to earlier days.
-        trendsFilter: { display: "ActionsBarValue", showLegend: false, showValuesOnSeries: true },
+        trendsFilter: { display: "ActionsBar", showLegend: false, showValuesOnSeries: true },
         filterTestAccounts: false,
         dataColorTheme: THEME,
       },
