@@ -130,11 +130,14 @@ function agentDailyMilestones(msgs: readonly Record<string, unknown>[]): Outgoin
     counts.set(k, n);
     if (n === DAILY_MESSAGE_THRESHOLD) {
       out.push({
-        key: `agent_daily_${DAILY_MESSAGE_THRESHOLD}:${k}`,
+        // "v2": v1 was sent as a personless event, which PostHog does not link to groups.
+        key: `agent_daily_${DAILY_MESSAGE_THRESHOLD}_v2:${k}`,
         event: "agent_daily_milestone",
         distinctId: `agent:${m.agent_id}`,
         timestamp: at,
-        properties: { day_ist: day, threshold: DAILY_MESSAGE_THRESHOLD, $process_person_profile: false },
+        // Must not be personless ($process_person_profile: false): PostHog then skips
+        // linking the event to its group, and unique-group counts see nothing.
+        properties: { day_ist: day, threshold: DAILY_MESSAGE_THRESHOLD },
         groups: { agent: m.agent_id as string },
       });
     }
